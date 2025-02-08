@@ -1,7 +1,22 @@
-const express = require('express');
-const cors = require('cors');
-const Gun = require('gun');
-const parseFunction = require('./parseFunction'); 
+import express from 'express';
+import cors from 'cors';
+import Gun from 'gun';
+import parseFunction from './parseFunction.js';
+import { decodeToken } from './middleware.js';
+import { createServer } from 'http';
+
+const validApiKeys = new Map();
+
+function generateApiKey(botId) {
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    validApiKeys.set(apiKey, {
+      botId: botId,
+      createdAt: new Date(),
+      permissions: ['read', 'write'] // customize as needed
+    });
+    return apiKey;
+  }
+
 
 let args = process.argv.slice(2).map(Number);
 
@@ -14,18 +29,23 @@ const PORT = args.shift();
 
 const connectedPeers = args.map(port => `http://localhost:${port}/gun`)
 
+
+
 const app = express()
 
 // middleware
 app.use(express.json())
 app.use(cors())
+app.use('/', decodeToken)
+
 
 app.get('/test', (req, res) => {
+    console.log("TEST REQ RECEIVED")
     res.status(200).send('OK')
 })
 
 
-const nodeServer = require('http').createServer(app)
+const nodeServer = createServer(app)
 
 const gun = Gun({
     peers: connectedPeers, // Other peers will connect to this
@@ -41,14 +61,31 @@ nodeServer.listen(PORT, () => {
 
 // endpoints
 
-app.get('/test', (req, res) => {
+app.get('/', (req, res) => {
+    console.log("REQUEST RECEIVED")
     res.status(200).send('OK')
 })
 
 // receives command from user
 app.post('/', (req, res) => {
-    const commandString = req.body
+
+    console.log("REQUEST RECEIVED")
+    console.log(gun.get("hi"))
+
+    try {
+
+        const { commandString } = req.body
+    
+        if (!commandString) {
+            return res.status(400).send('Request did not receive db command');
+        }
+
+    } catch (e) {
+        res.status(500).send('Internal server error in sending db command')
+    }
+
     const databaseOutput = parseFunction(commandString)
+
     res.send(databaseOutput)
 })
 
