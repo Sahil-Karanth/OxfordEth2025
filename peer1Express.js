@@ -5,6 +5,7 @@ import parseFunction from './parseFunction.js';
 import { decodeToken } from './middleware.js';
 import { createServer } from 'http';
 
+
 const validApiKeys = new Map();
 
 function generateApiKey(botId) {
@@ -47,9 +48,12 @@ app.get('/test', (req, res) => {
 
 const nodeServer = createServer(app)
 
+const REDIS_PORT = 6379
+
 const gun = Gun({
     peers: connectedPeers, // Other peers will connect to this
     file: 'data1.json', // Storage file
+    redis: { host: '127.0.0.1', port: REDIS_PORT },
     web: nodeServer // Start server
 });
 
@@ -86,6 +90,6 @@ app.post('/', (req, res) => {
 
     const databaseOutput = parseFunction(commandString)
 
-    res.send(databaseOutput)
+    res.status(200).send(databaseOutput)
 })
 
