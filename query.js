@@ -27,6 +27,11 @@ class Query {
         const val = await this.user.get(key)
         return val
     }
+
+    async readAll() {
+        const val = await this.user
+        return val
+    }
 }
 
 
@@ -47,8 +52,6 @@ async function queryLang(user) {
             : token
         );
         
-
-        
         const result = parts
 
         console.log ('############################')
@@ -59,6 +62,7 @@ async function queryLang(user) {
         const db = new Query(user, gun);
         let returnstring = "";
 
+        result[0] = result[0].toLowerCase()
         if (result[0] == 'add') {
             value = JSON.parse(result[2]);
             db.add(key, value)
@@ -71,7 +75,12 @@ async function queryLang(user) {
             db.delete(key)
             
         } else if (result[0] == 'read'){
-            returnstring = await db.read(key)
+            if (key == "*") {
+                returnstring = await db.readAll()
+            } else {
+                returnstring = await db.read(key)
+            }
+
             console.log(returnstring)
            
         } 
