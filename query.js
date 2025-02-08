@@ -1,4 +1,6 @@
-const Gun = require('gun');
+import Gun from 'gun';
+import * as readline from 'readline';
+
 const gun = Gun(['http://localhost:3001/gun', 'http://localhost:3002/gun', 'http://localhost:3003/gun']);
 
 class Query {
@@ -25,6 +27,9 @@ class Query {
 
     async read(key) {
         const val = await this.user.get(key)
+        if (val == undefined) {
+            return "Error: Not a well formed expression"
+        }
         return val
     }
 
@@ -33,9 +38,6 @@ class Query {
         return val
     }
 }
-
-
-const readline = require('readline');
 
 async function queryLang(user) {
     const query = readline.createInterface({
@@ -54,38 +56,66 @@ async function queryLang(user) {
         
         const result = parts
 
-        console.log ('############################')
-        console.log(result)
-        func = result[0];
-        key = result[1]; 
+        let func = result[0];
+        let key = result[1]; 
         
         const db = new Query(user, gun);
         let returnstring = "";
 
         result[0] = result[0].toLowerCase()
-        if (result[0] == 'add') {
-            value = JSON.parse(result[2]);
-            db.add(key, value)
+        if (result.length == 3) {
+            if (result[0] == 'add') {
+                try {
+                    let value = JSON.parse(result[2]);
+                    const alreadyExists = await db.read(key)
+                    if (alreadyExists == undefined) {
+                        db.add(key, value)
+                    } else {
+                        returnstring = "Error: Not a well formed expression"
+                    }
+                }
+                catch (error) {
+                    let value = {}
+                    returnstring = "Error: Not a well formed expression"
+                }
+                
 
-        } else if (result[0] == 'update'){
-            value = JSON.parse(result[2]);
-            db.update(key, value)
-          
-        } else if (result[0] == 'delete'){
-            db.delete(key)
-            
-        } else if (result[0] == 'read'){
-            if (key == "*") {
-                returnstring = await db.readAll()
+            } else if (result[0] == 'update'){
+                try {
+                    let value = JSON.parse(result[2]);
+                    db.update(key, value)
+                }
+                catch (error) {
+                    let value = {}
+                    returnstring = "Error: Not a well formed expression"
+                }
             } else {
-                returnstring = await db.read(key)
+                returnstring = "Error: Not a well formed expression"
             }
 
-            console.log(returnstring)
-           
-        } 
+        } else if (result.length == 2){
+        
+            if (result[0] == 'delete'){
+                db.delete(key)
+                    
+            } else if (result[0] == 'read'){
+                if (key == "*") {
+                    returnstring = await db.readAll()
+                } else {
+                    returnstring = await db.read(key)
+                }
 
-        query.close()
+                console.log(returnstring)
+            } 
+            else {
+                returnstring = "Error: Not a well formed expression"
+            }
+        }
+        else {
+            returnstring = "Error: Not a well formed expression"
+        }
+
+        //qurey.close()
 
         return returnstring
         
@@ -93,10 +123,6 @@ async function queryLang(user) {
         });
     }
 
-queryLang("newUser")
+const val = queryLang("newUser");
+console.log("Returned:", val);
 
-// 
-// add 'myObj' '{"name": 25}'
-// read 'myObj'
-// update 'myObj' '{"name": 14}'
-// delete 'myObj' 
