@@ -16,11 +16,12 @@ class Query {
   async add(key, data) {
     let hidden = await SEA.encrypt(data, this.db);
     this.user.get(key).put(hidden);
-    console.log(`Added data to '${this.db}/${key}':`, hidden);
+    console.log(`Added data to '${this.db}/${key}':`, data);
   }
 
-  update(key, data) {
-    this.user.get(key).put(data);
+  async update(key, data) {
+    let hidden = await SEA.encrypt(data, this.db);
+    this.user.get(key).put(hidden);
     console.log(`Updated data to '${this.db}/${key}':`, data);
   }
 
@@ -68,11 +69,11 @@ async function queryLang(user, splitQuery) {
   let key = result[1];
 
   const db = new Query(user, gun);
-  let returnstring = "";
+  let returnString = "";
 
-  result[0] = result[0].toLowerCase();
+  func = func.toLowerCase();
   if (result.length == 3) {
-    if (result[0] == "add") {
+    if (func == "add") {
       try {
         let value = JSON.parse(result[2]);
         await db.add(key, value);
@@ -80,53 +81,53 @@ async function queryLang(user, splitQuery) {
         // if (alreadyExists == undefined) {
         //   await db.add(key, value);
         // } else {
-        //   returnstring = "Error: Not a well formed expression";
+        //   returnString = "Error: Not a well formed expression";
         // }
       } catch (error) {
         let value = {};
-        returnstring = "Error: Not a well formed expression";
+        returnString = "Error: Not a well formed expression";
       }
-    } else if (result[0] == "update") {
+    } else if (func == "update") {
       try {
         let value = JSON.parse(result[2]);
-        db.update(key, value);
+        await db.update(key, value);
       } catch (error) {
         let value = {};
-        returnstring = "Error: Not a well formed expression";
+        returnString = "Error: Not a well formed expression";
       }
     } else {
-      returnstring = "Error: Not a well formed expression";
+      returnString = "Error: Not a well formed expression";
     }
   } else if (result.length == 2) {
-    if (result[0] == "delete") {
+    if (func == "delete") {
       db.delete(key);
-    } else if (result[0] == "read") {
+    } else if (func == "read") {
       if (key == "*") {
-        returnstring = await db.readAll();
+        returnString = await db.readAll();
       } else {
-        returnstring = await db.read(key);
+        returnString = await db.read(key);
       }
 
-      // console.log(returnstring);
+      // console.log(returnString);
     } else {
-      returnstring = "Error: Not a well formed expression";
+      returnString = "Error: Not a well formed expression";
     }
   } else {
-    returnstring = "Error: Not a well formed expression";
+    returnString = "Error: Not a well formed expression";
   }
 
   //qurey.close()
 
   console.log("ABOUT TO CHECK")
-  console.log(returnstring)
+  console.log(returnString)
 
-  return returnstring;
+  return returnString;
 }
 
 export { queryLang };
 
 
-// const wallet =
-//   "829e268ae2d80f930ece00cc07786860021ee733baf5ebda83f0924e6022276b";
-// const val = queryLang(wallet, "read *");
-// console.log("Returned:", val);
+const wallet =
+  "829e268ae2d80f930ece00cc07786860021ee733baf5ebda83f0924e6022276b";
+const val = queryLang(wallet, "update 'name' '{\"bench\": 45}'");
+console.log("Returned:", val);
