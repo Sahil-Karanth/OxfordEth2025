@@ -30,18 +30,28 @@ class Query {
   }
 
   async read(key) {
-    const encryptedObject = await this.user.get(key);
-    const decrypted = await SEA.decrypt(encryptedObject, this.db);
-    if (val == undefined) {
-      return "Error: Not a well formed expression";
+    const encryptedObject = await this.user.get(key)
+    if (encryptedObject == undefined) {
+        return "Error: Not a well formed expression"
     }
-    return decrypted;
+    const decrypted = await SEA.decrypt(encryptedObject, this.db);
+    return decrypted
   }
 
   async readAll() {
-    const val = await this.user;
-    
-    return val;
+      let allData = [];
+      this.user.map().once(async (encryptedObject, key) => {
+          if (!encryptedObject) return;
+          const decrypted = await SEA.decrypt(encryptedObject, this.db);
+          allData.push({ key, data: decrypted });
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const liststr = allData.map(data => JSON.stringify(data))
+      const output = `[${liststr.join(",")}]`
+
+      return output
   }
 }
 
@@ -65,12 +75,13 @@ async function queryLang(user, splitQuery) {
     if (result[0] == "add") {
       try {
         let value = JSON.parse(result[2]);
-        const alreadyExists = await db.read(key);
-        if (alreadyExists == undefined) {
-          await db.add(key, value);
-        } else {
-          returnstring = "Error: Not a well formed expression";
-        }
+        await db.add(key, value);
+        // const alreadyExists = await db.read(key);
+        // if (alreadyExists == undefined) {
+        //   await db.add(key, value);
+        // } else {
+        //   returnstring = "Error: Not a well formed expression";
+        // }
       } catch (error) {
         let value = {};
         returnstring = "Error: Not a well formed expression";
@@ -96,7 +107,7 @@ async function queryLang(user, splitQuery) {
         returnstring = await db.read(key);
       }
 
-      console.log(returnstring);
+      // console.log(returnstring);
     } else {
       returnstring = "Error: Not a well formed expression";
     }
@@ -106,10 +117,16 @@ async function queryLang(user, splitQuery) {
 
   //qurey.close()
 
+  console.log("ABOUT TO CHECK")
+  console.log(returnstring)
+
   return returnstring;
 }
 
-const wallet =
-  "829e268ae2d80f930ece00cc07786860021ee733baf5ebda83f0924e6022276b";
-const val = queryLang(wallet, "read *");
-console.log("Returned:", val);
+export { queryLang };
+
+
+// const wallet =
+//   "829e268ae2d80f930ece00cc07786860021ee733baf5ebda83f0924e6022276b";
+// const val = queryLang(wallet, "read *");
+// console.log("Returned:", val);

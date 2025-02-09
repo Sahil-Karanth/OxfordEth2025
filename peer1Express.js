@@ -3,7 +3,8 @@ import cors from 'cors';
 import Gun from 'gun';
 import parseFunction from './parseFunction.js';
 import { decodeToken } from './middleware.js';
-import { createServer } from 'http';
+import { createServer } from 'http';    
+import { queryLang } from './query.js'
 
 
 const validApiKeys = new Map();
@@ -71,25 +72,31 @@ app.get('/', (req, res) => {
 })
 
 // receives command from user
-app.post('/', (req, res) => {
+app.post('/', async (req, res) => {
 
     console.log("REQUEST RECEIVED")
     console.log(gun.get("hi"))
 
     try {
 
-        const { commandString } = req.body
+        console.log(req.body)
+
+        const username = req.body.username
+        const commandString = req.body.inputData
+
     
         if (!commandString) {
             return res.status(400).send('Request did not receive db command');
         }
 
+        const databaseOutput = await queryLang(username, commandString)
+
+        res.status(200).send(databaseOutput)
+
     } catch (e) {
         res.status(500).send('Internal server error in sending db command')
     }
 
-    const databaseOutput = parseFunction(commandString)
 
-    res.status(200).send(databaseOutput)
 })
 
