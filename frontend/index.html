@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .login-container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 320px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      box-sizing: border-box;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    .submit-btn:hover {
+      background-color: #45a049;
+    }
+
+    .error-message {
+      color: red;
+      font-size: 14px;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Login</h1>
+    <input type="text" id="username" class="input-field" placeholder="Username" required>
+    <input type="password" id="password" class="input-field" placeholder="Password" required>
+    <button id="loginBtn" class="submit-btn">Login</button>
+    <div id="errorMessage" class="error-message"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
+      authDomain: "memoryorganauth.firebaseapp.com",
+      projectId: "memoryorganauth",
+      storageBucket: "memoryorganauth.appspot.com",
+      messagingSenderId: "333239312434",
+      appId: "1:333239312434:web:6c247813673d3a6a5a1c2b",
+      measurementId: "G-6BMLQF2S68"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+
+    [usernameInput, passwordInput].forEach(input => {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          loginBtn.click();
+        }
+      });
+    });
+
+    loginBtn.addEventListener('click', async () => {
+      const username = usernameInput.value;
+      const password = passwordInput.value;
+
+      errorMessage.textContent = '';
+
+      if (!username || !password) {
+        errorMessage.textContent = 'Both fields are required!';
+        return;
+      }
+
+      try {
+        const email = `${username}@gmail.com`;
+
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        console.log('Logged in as:', user.email);
+        localStorage.setItem('username', username); // Store original username
+        window.location.href = 'home.html';
+      } catch (error) {
+        console.error('Login error:', error);
+        errorMessage.textContent = 'Invalid username or password';
+      }
+    });
+    
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        window.location.href = 'home.html';
+      }
+    });
+  </script>
+</body>
+</html>
