@@ -1,3 +1,6 @@
+# Project Introduction
+We have tackled the decentralised memory organ bounty for the Torus network at Eth Oxford 2025. Our p2p distributed database is fault tolerant without a single point of failure and can easily be scaled horizontally by adding more peers on the network. Our system provides a decentralised peer-to-peer network, in memory caching, a custom query language with CRUD operations, a secure API to access the network, a tamper-proof design via encryption and an alternative access path for bots and humans.
+
 # Custom Query Language for GunDB
 
 ## Overview
