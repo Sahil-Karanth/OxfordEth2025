@@ -1,20 +1,19 @@
-    import Gun from "gun";
-    import SEA from "gun/sea.js";
+import Gun from "gun";
+import SEA from "gun/sea.js";
 
-    function createGun(number) {
-        const list = [];
-        for (let i = 0; i < number; i++) {
-          list.push(`http://localhost:${3000 + i}/gun`);
-        }
-        return list;
+function createGun(number) {
+    const list = [];
+    for (let i = 0; i < number; i++) {
+        list.push(`http://localhost:${3000 + i}/gun`);
     }
-    const gun = Gun([
-        createGun(500)
-    ])
+    return list;
+}
 
+const gun = Gun([
+    createGun(500)
+])
 
-
-    class Query {
+class Query {
     constructor(dbNode, gunInstance) {
         this.db = dbNode;
         this.user = gunInstance.get(this.db);
@@ -81,43 +80,35 @@
     func = func.toLowerCase();
     if (result.length == 3) {
         if (func == "add") {
-        try {
-            let value = JSON.parse(result[2]);
-            await db.add(key, value);
-            // const alreadyExists = await db.read(key);
-            // if (alreadyExists == undefined) {
-            //   await db.add(key, value);
-            // } else {
-            //   returnString = "Error: Not a well formed expression";
-            // }
-        } catch (error) {
-            let value = {};
-            returnString = "Error: Not a well formed expression";
-        }
+            try {
+                let value = JSON.parse(result[2]);
+                await db.add(key, value);
+            } catch (error) {
+                let value = {};
+                returnString = "Error: Not a well formed expression";
+            }
         } else if (func == "update") {
-        try {
-            let value = JSON.parse(result[2]);
-            await db.update(key, value);
-        } catch (error) {
-            let value = {};
-            returnString = "Error: Not a well formed expression";
-        }
+            try {
+                let value = JSON.parse(result[2]);
+                await db.update(key, value);
+            } catch (error) {
+                let value = {};
+                returnString = "Error: Not a well formed expression";
+            }
         } else {
-        returnString = "Error: Not a well formed expression";
+            returnString = "Error: Not a well formed expression";
         }
     } else if (result.length == 2) {
         if (func == "delete") {
-        db.delete(key);
+            db.delete(key);
         } else if (func == "read") {
-        if (key == "*") {
-            returnString = await db.readAll();
+            if (key == "*") {
+                returnString = await db.readAll();
+            } else {
+                returnString = await db.read(key);
+            }
         } else {
-            returnString = await db.read(key);
-        }
-
-        // console.log(returnString);
-        } else {
-        returnString = "Error: Not a well formed expression";
+            returnString = "Error: Not a well formed expression";
         }
     } else {
         returnString = "Error: Not a well formed expression";
@@ -129,30 +120,6 @@
     console.log(returnString)
 
     return returnString;
-    }
+}
 
-    export { queryLang };
-
-
-    const wallet =
-    "829e268ae2d80f930ece00cc07786860021ee733baf5ebda83f0924e6022276b";
-    // const val = queryLang(wallet, "read *");
-    // promises.push(queryLang(wallet, `add '${i}' '{\"${i}\": ${i}}'`));
-    // console.log("Returned:", val);
-
-    // // Record the start time
-    const startTime = process.hrtime();
-    const promises = [];
-
-    for (let i = 0; i < 10000; i++) {
-    // Assuming queryLang returns a promise. If not, wrap it in Promise.resolve.
-        promises.push(queryLang(wallet, `delete '${i}'`));
-        // promises.push(queryLang(wallet, `add '${i}' '{\"${i}\": ${i}}'`));
-    }
-
-    // // Wait for all promises (including queryLang) to complete
-    Promise.all(promises).then(() => {
-    const diff = process.hrtime(startTime);
-    const elapsedTimeInSeconds = diff[0] + diff[1] / 1e9;
-    console.log(`Time taken for the loop: ${elapsedTimeInSeconds.toFixed(6)} seconds`);
-    });
+export { queryLang };
