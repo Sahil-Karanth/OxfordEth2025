@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@chainsafe/libp2p-gossipsub": "^14.1.0",
+    "@orbitdb/core": "^2.4.3",
+    "blockstore-level": "^2.0.1",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.1.0",
+    "gun": "^0.2020.1240",
+    "helia": "^5.2.0",
+    "libp2p": "^2.5.2"
+  }
+}
