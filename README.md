@@ -185,3 +185,150 @@ export { queryLang };
 ## Conclusion
 This query language provides a simple way to interact with GunDB securely and efficiently. By supporting basic CRUD operations and encryption, it ensures safe and structured data storage.
 
+# Express & GunDB Server Documentation
+
+## Overview
+This documentation describes the Express server that integrates GunDB for decentralized data storage. The server provides a REST API to interact with GunDB using a custom query language.
+
+## Prerequisites
+- **Node.js** installed
+- **GunDB** (`gun` package)
+- **Express** (`express` package)
+- **CORS** (`cors` package)
+- **Redis** for caching (optional but recommended)
+
+## Installation
+To set up and run the server, install the dependencies:
+```sh
+npm install express cors gun redis
+```
+
+## Server Initialization
+The server initializes with multiple connected GunDB peers and uses Redis for storage.
+
+```javascript
+import express from 'express';
+import cors from 'cors';
+import Gun from 'gun';
+import { decodeToken } from './middleware.js';
+import { createServer } from 'http';    
+import { queryLang } from './query.js';
+```
+
+## API Key Generation
+The system generates API keys for authentication:
+```javascript
+const validApiKeys = new Map();
+
+function generateApiKey(botId) {
+    const apiKey = crypto.randomBytes(32).toString('hex');
+    validApiKeys.set(apiKey, {
+      botId: botId,
+      createdAt: new Date(),
+      permissions: ['read', 'write']
+    });
+    return apiKey;
+}
+```
+
+## Command Line Arguments
+The server expects at least two arguments:
+- **PORT**: The port the server listens on
+- **Other Ports**: Connected GunDB peer ports
+
+```javascript
+let args = process.argv.slice(2).map(Number);
+const minArgs = 2;
+if (args.length < minArgs) {
+    throw new Error(`Incorrect number of arguments. Expected ${minArgs}, but got ${args.length}.`);
+}
+const PORT = args.shift();
+const connectedPeers = args.map(port => `http://localhost:${port}/gun`);
+```
+
+## Express App Setup
+The Express app is configured with middleware:
+```javascript
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use('/', decodeToken);
+```
+
+## Test Endpoint
+A test endpoint is available for health checks:
+```javascript
+app.get('/test', (req, res) => {
+    console.log("TEST REQ RECEIVED");
+    res.status(200).send('OK');
+});
+```
+
+## GunDB Initialization
+GunDB is initialized with Redis for caching:
+```javascript
+const nodeServer = createServer(app);
+const REDIS_PORT = 6379;
+const gun = Gun({
+    peers: connectedPeers,
+    file: 'data1.json',
+    redis: { host: '127.0.0.1', port: REDIS_PORT },
+    web: nodeServer
+});
+```
+
+## Server Start
+The server listens on the specified port:
+```javascript
+nodeServer.listen(PORT, () => {
+    console.log(`Gun peer & Express running on http://localhost:${PORT}`);
+});
+```
+
+## API Endpoints
+
+### Root Endpoint
+```http
+GET /
+```
+Logs the request and responds with `OK`.
+
+### Database Command Execution
+```http
+POST /
+```
+Executes a user command via the custom query language.
+#### Request Body
+```json
+{
+  "username": "user1",
+  "inputData": "add 'key' '{\"value\": 123}'"
+}
+```
+#### Response
+- **200 OK**: Returns the output from `queryLang`.
+- **400 Bad Request**: Missing database command.
+- **500 Internal Server Error**: Failure in processing the request.
+
+```javascript
+app.post('/', async (req, res) => {
+    try {
+        console.log(req.body);
+        const username = req.body.username;
+        const commandString = req.body.inputData;
+        if (!commandString) {
+            return res.status(400).send('Request did not receive db command');
+        }
+        const databaseOutput = await queryLang(username, commandString);
+        res.status(200).send(databaseOutput);
+    } catch (e) {
+        res.status(500).send('Internal server error in sending db command');
+    }
+});
+```
+
+## Conclusion
+This Express server integrates GunDB with a REST API to facilitate decentralized storage and retrieval of data using a custom query language. The server supports authentication, command execution, and peer-to-peer networking.
+
+
+
