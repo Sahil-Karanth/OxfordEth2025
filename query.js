@@ -1,6 +1,15 @@
 import Gun from "gun";
 import SEA from "gun/sea.js";
 
+let numberPorts = process.argv.slice(2).map(Number);
+
+const minArgs = 1
+if (args.length < 1) {
+    throw new Error(`Incorrect number of arguments. Expected ${minArgs}, but got ${args.length}.`);
+  }
+
+const numberPortsShift = args.shift();
+
 function createGun(number) {
     const list = [];
     for (let i = 0; i < number; i++) {
@@ -10,7 +19,7 @@ function createGun(number) {
 }
 
 const gun = Gun([
-    createGun(500)
+    createGun(numberPortsShift)
 ])
 
 class Query {
@@ -80,6 +89,7 @@ class Query {
     func = func.toLowerCase();
     if (result.length == 3) {
         if (func == "add") {
+
             try {
                 let value = JSON.parse(result[2]);
                 await db.add(key, value);
@@ -88,6 +98,7 @@ class Query {
                 returnString = "Error: Not a well formed expression";
             }
         } else if (func == "update") {
+
             try {
                 let value = JSON.parse(result[2]);
                 await db.update(key, value);
@@ -101,6 +112,7 @@ class Query {
     } else if (result.length == 2) {
         if (func == "delete") {
             db.delete(key);
+
         } else if (func == "read") {
             if (key == "*") {
                 returnString = await db.readAll();
@@ -114,9 +126,6 @@ class Query {
         returnString = "Error: Not a well formed expression";
     }
 
-    //qurey.close()
-
-    //   console.log("ABOUT TO CHECK")
     console.log(returnString)
 
     return returnString;
