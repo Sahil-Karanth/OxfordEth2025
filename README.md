@@ -330,5 +330,184 @@ app.post('/', async (req, res) => {
 ## Conclusion
 This Express server integrates GunDB with a REST API to facilitate decentralized storage and retrieval of data using a custom query language. The server supports authentication, command execution, and peer-to-peer networking.
 
+# Firebase Authentication: Humans & AI Bots
+
+## Overview
+This documentation explains how Firebase authentication supports both human users via Firebase Authentication and AI bots using digital signatures. The backend verifies user authentication based on Firebase tokens for humans and cryptographic signatures for bots.
+
+## Backend: Authentication Middleware
+The middleware `decodeToken` distinguishes between human users and AI bots.
+
+### Dependencies
+```javascript
+import crypto from 'crypto';
+import { auth } from './firebaseConfig.js';
+```
+
+### Trusted Public Keys
+A predefined set of trusted public keys is used to verify bot authenticity.
+```javascript
+const TRUSTED_PUBLIC_KEYS = new Set([
+  `-----BEGIN PUBLIC KEY-----
+  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+  -----END PUBLIC KEY-----`
+]);
+```
+
+### Authentication Logic
+```javascript
+const decodeToken = async (req, res, next) => {
+  try {
+    const publicKey = req.headers['x-public-key'];
+    const signature = req.headers['x-signature'];
+    const timestamp = req.headers['x-timestamp'];
+    
+    if (publicKey && signature && timestamp) {
+      if (!TRUSTED_PUBLIC_KEYS.has(publicKey)) {
+        return res.status(401).json({ message: "Untrusted public key (unknown agent)" });
+      }
+      
+      const verifier = crypto.createVerify('SHA256');
+      verifier.update(timestamp);
+      const isValidSignature = verifier.verify(publicKey, signature, 'base64');
+      
+      if (isValidSignature) {
+        req.isBot = true;
+        req.publicKey = publicKey;
+        return next();
+      }
+      return res.status(401).json({ message: "Invalid signature" });
+    }
+
+    // Firebase Authentication for Humans
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decodedToken = await auth.verifyIdToken(token);
+
+    if (decodedToken) {
+      req.isBot = false;
+      req.user = decodedToken;
+      return next();
+    }
+
+    return res.status(401).json({ message: "Unauthorized" });
+  } catch (error) {
+    console.error('Auth error:', error);
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+};
+
+export { decodeToken };
+```
+
+## Frontend: Electron App with Bot Support
+The frontend detects whether the application is being run as a bot or a human user and authenticates accordingly.
+
+### Dependencies
+```javascript
+const { app, BrowserWindow } = require('electron');
+const crypto = require('crypto');
+```
+
+### Argument Parsing for Bot Mode
+```javascript
+const arg = process.argv[2].toLowerCase();
+let isBot = false;
+
+if (arg == "true") {
+  isBot = true;
+} else if (arg != "false") {
+  throw new Error(`Incorrect argument. Expected 'true' or 'false', but got ${arg}`);
+}
+```
+
+### Electron App for Human Users
+```javascript
+function makeElectronApp() {
+  let win;
+  
+  function createWindow() {
+    win = new BrowserWindow({
+      width: 800,
+      height: 600,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+      }
+    });
+    win.loadFile('index.html');
+  }
+  
+  app.whenReady().then(() => {
+    createWindow();
+    app.on('window-all-closed', () => {
+      if (process.platform !== 'darwin') app.quit();
+    });
+  });
+  
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+}
+```
+
+### Bot Authentication with Digital Signatures
+Bots use asymmetric cryptography for authentication.
+```javascript
+function handleBotConnection() {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+      type: 'spki',
+      format: 'pem'
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',
+      format: 'pem'
+    }
+  });
+  
+  console.log(publicKey);
+  console.log(privateKey);
+  
+  const timestamp = Date.now().toString();
+  const signer = crypto.createSign('SHA256');
+  signer.update(timestamp);
+  const signature = signer.sign(privateKey, 'base64');
+  
+  fetch('http://localhost:3001/', {
+    headers: {
+      'x-public-key': publicKey,
+      'x-signature': signature,
+      'x-timestamp': timestamp
+    }
+  })
+  .then(res => res.json())
+  .then(console.log)
+  .catch(console.error);
+}
+```
+
+### Executing the Correct Authentication Flow
+```javascript
+if (!isBot) {
+  makeElectronApp();
+} else {
+  handleBotConnection();
+}
+```
+
+## Summary
+- **Human users** authenticate via Firebase Authentication tokens.
+- **AI bots** authenticate using digital signatures verified against trusted public keys.
+- The frontend determines whether the process is a bot or a human user.
+- Secure cryptographic signatures prevent unauthorized bot access.
+
 
 
