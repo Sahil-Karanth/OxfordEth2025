@@ -69,9 +69,9 @@ class Query {
 
         return output
     }
-    }
+}
 
-    async function queryLang(user, splitQuery) {
+async function queryLang(user, splitQuery) {
     const parts = splitQuery
         .match(/'[^']+'|\S+/g)
         .map((token) =>

@@ -105,8 +105,10 @@ for port in "${ports[@]}"; do
     
     # Launch the Node.js server in the background.
     # Using nohup detaches the process from the terminal.
-    nohup node server.js $args >/dev/null 2>&1 &
+    nohup node peer1Express.js $args >/dev/null 2>&1 &
 done
+
+nohup node query.js $n >/dev/null 2>&1 &
 
 # Optionally, wait for all background processes if needed.
 wait
