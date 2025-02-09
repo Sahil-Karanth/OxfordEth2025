@@ -1,6 +1,35 @@
 # Project Introduction
 We have tackled the decentralised memory organ bounty for the Torus network at Eth Oxford 2025. Our p2p distributed database is fault tolerant without a single point of failure and can easily be scaled horizontally by adding more peers on the network. Our system provides a decentralised peer-to-peer network, in memory caching, a custom query language with CRUD operations, a secure API to access the network, a tamper-proof design via encryption and an alternative access path for bots and humans.
 
+## Starting the Project
+To start the project, follow these steps:
+
+1. Install dependencies:
+   ```sh
+   npm install
+   ```
+2. Navigate to the backend folder and start the network creation:
+   ```sh
+   cd backend
+   ./bash.sh n m
+   ```
+   - This command requires two arguments:
+     - **n**: Number of nodes in the P2P network.
+     - **m**: Degree of each node (how many nodes it's connected to).
+   - Example:
+     ```sh
+     ./bash.sh 10 3
+     ```
+3. Navigate to the frontend folder and start the frontend:
+   ```sh
+   cd frontend
+   npm start b
+   ```
+   - This command requires one argument:
+     - **b**: `'true'` or `'false'`
+     - `'false'`: Runs in GUI mode.
+     - `'true'`: Runs in bot mode.
+
 # Custom Query Language for GunDB
 
 ## Overview
