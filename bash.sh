@@ -32,13 +32,13 @@ if [ "$m" -lt 2 ]; then
   exit 1
 fi
 
-# Ensure m does not exceed n.
+# Cap m to n if necessary.
 if [ "$m" -gt "$n" ]; then
   echo "Warning: m cannot exceed n. Setting m = n."
   m=$n
 fi
 
-# Export any required environment variables.
+# Export required environment variables.
 export REDIS_HOST="127.0.0.1"
 export REDIS_PORT="6379"
 export NODE_ENV="development"
@@ -50,39 +50,37 @@ for (( i=0; i<n; i++ )); do
   ports+=($(( start_port + i )))
 done
 
-# Loop over each port and launch the server instance.
+# Launch each peer1Express.js instance.
 for port in "${ports[@]}"; do
     # Build the list of peer ports.
-    # First, add the two fixed neighbors (using circular logic).
     peer_ports=()
 
-    # Previous neighbor: if current port is the first, wrap to the last port.
+    # Fixed neighbors (using circular logic).
     if [ "$port" -eq "$start_port" ]; then
         peer_ports+=($(( start_port + n - 1 )))
     else
         peer_ports+=($(( port - 1 )))
     fi
 
-    # Next neighbor: if current port is the last, wrap to the first port.
     if [ "$port" -eq $(( start_port + n - 1 )) ]; then
         peer_ports+=( "$start_port" )
     else
         peer_ports+=($(( port + 1 )))
     fi
 
-    # Now add m-2 random peer ports.
+    # Add m-2 random peer ports.
     random_count=$(( m - 2 ))
     for (( j=0; j<random_count; j++ )); do
          while true; do
              # Generate a random port in the range [start_port, start_port+n-1]
              random_peer=$(( RANDOM % n + start_port ))
              
-             # Exclude the current node's port.
+             # Skip the current node's port.
              if [ "$random_peer" -eq "$port" ]; then
                 continue
              fi
 
-             # Exclude any port already added to peer_ports.
+             # Check for duplicates.
              duplicate=0
              for p in "${peer_ports[@]}"; do
                  if [ "$random_peer" -eq "$p" ]; then
@@ -98,17 +96,17 @@ for port in "${ports[@]}"; do
          done
     done
 
-    # Combine the current port and the peer ports into command-line arguments.
+    # Build command-line arguments.
     args="$port ${peer_ports[*]}"
     
-    echo "Starting server on port $port with peers: ${peer_ports[*]}"
+    echo "Starting peer1Express.js on port $port with peers: ${peer_ports[*]}"
     
-    # Launch the Node.js server in the background.
-    # Using nohup detaches the process from the terminal.
-    nohup node peer1Express.js $args >/dev/null 2>&1 &
+    # Launch the Node.js server in the background with nohup.
+    nohup node peer1Express.js $args > peer_${port}.log 2>&1 &
 done
 
-nohup node query.js $n >/dev/null 2>&1 &
+# Launch query.js in the background with nohup.
+nohup node query.js $n > query.log 2>&1 &
 
-# Optionally, wait for all background processes if needed.
+# Wait for all background processes.
 wait

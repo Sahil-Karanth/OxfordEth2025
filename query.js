@@ -1,12 +1,13 @@
 import Gun from "gun";
 import SEA from "gun/sea.js";
 
-let numberPorts = process.argv.slice(2).map(Number);
+
+let args = process.argv.slice(2)
 
 const minArgs = 1
 if (args.length < 1) {
     throw new Error(`Incorrect number of arguments. Expected ${minArgs}, but got ${args.length}.`);
-  }
+}
 
 const numberPortsShift = args.shift();
 
@@ -130,5 +131,6 @@ async function queryLang(user, splitQuery) {
 
     return returnString;
 }
+
 
 export { queryLang };
