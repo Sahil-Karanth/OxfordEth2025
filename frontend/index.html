@@ -77,6 +77,12 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
 
+    const { ipcRenderer } = require('electron');
+    let portArrVar;
+    ipcRenderer.on('set-port-array', (event, portArr) => {
+      localStorage.setItem("portArray", portArr)
+    });
+
     const firebaseConfig = {
       apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
       authDomain: "memoryorganauth.firebaseapp.com",

@@ -105,6 +105,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
     import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
 
+
     const firebaseConfig = {
       apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
       authDomain: "memoryorganauth.firebaseapp.com",
@@ -122,9 +123,30 @@
     const inputField = document.getElementById('inputField');
     const outputField = document.getElementById('outputField');
     const logoutBtn = document.getElementById('logoutBtn');
-    
-    const MASTER_NODE_PORT = 3001;
 
+    async function maybeSendNodeReq(port, idToken, inputText) {
+      try {
+        const response = await fetch(
+              `http://localhost:${port}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({
+                  username: localStorage.getItem('username'),
+                  inputData: inputText
+                })
+              }
+            );
+        return response
+      } catch (err) {
+        console.log(err)
+        return null
+      }
+    }
+    
     submitBtn.addEventListener('click', async () => {
       try {
         const inputText = inputField.value;
@@ -137,23 +159,25 @@
 
 
         const idToken = await user.getIdToken(true);
+        var portArray = (localStorage.getItem("portArray") || "")
+          .split(",")
+          .map(Number)
+          .filter(port => !isNaN(port));
 
-        const response = await fetch(
-          `http://localhost:${MASTER_NODE_PORT}`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${idToken}`
-            },
-            body: JSON.stringify({
-              username: localStorage.getItem('username'),
-              inputData: inputText
-            })
+        let responseText = "COULDN'T CONNECT TO ANY PEERS";
+
+        for (let i = 0; i < portArray.length; i++) {
+          const portToConnect = portArray[i];
+          const response = await maybeSendNodeReq(portToConnect, idToken, inputText);
+
+          if (response != null) {
+            responseText = await response.text();
+            break;
           }
-        );
+        }
 
-        outputField.value = await response.text();
+        
+        outputField.value = responseText
 
       } catch (error) {
         console.log("ERROR OVER HERE!")
@@ -170,6 +194,7 @@
 
     logoutBtn.addEventListener('click', async () => {
       try {
+        console.log("LOGGING OUT")
         await signOut(auth);
         window.location.href = 'index.html';
       } catch (error) {
