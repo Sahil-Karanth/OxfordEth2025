@@ -124,6 +124,11 @@
     const outputField = document.getElementById('outputField');
     const logoutBtn = document.getElementById('logoutBtn');
 
+    var portArray = (localStorage.getItem("portArray") || "")
+          .split(",")
+          .map(Number)
+          .filter(port => !isNaN(port));
+
     async function maybeSendNodeReq(port, idToken, inputText) {
       try {
         const response = await fetch(
@@ -159,21 +164,30 @@
 
 
         const idToken = await user.getIdToken(true);
-        var portArray = (localStorage.getItem("portArray") || "")
-          .split(",")
-          .map(Number)
-          .filter(port => !isNaN(port));
+
 
         let responseText = "COULDN'T CONNECT TO ANY PEERS";
 
-        for (let i = 0; i < portArray.length; i++) {
-          const portToConnect = portArray[i];
+        var iterCount = 0
+        while (true) {
+          console.log(portArray)
+          const portToConnect = portArray[0];
           const response = await maybeSendNodeReq(portToConnect, idToken, inputText);
 
           if (response != null) {
             responseText = await response.text();
             break;
+          } else {
+            // move to end of queue
+            portArray.splice(0, 1)
+            portArray.push(portToConnect)
           }
+
+          if (iterCount == portArray.length) {
+            break
+          }
+
+          iterCount += 1
         }
 
         

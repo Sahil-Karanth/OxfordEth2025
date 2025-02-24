@@ -103,6 +103,7 @@ function handleBotConnection() {
   .catch(console.error);
 }
 
+
 if (!isBot) {
   makeElectronApp(portArr);
 } else {
