@@ -31,9 +31,6 @@ if (portArr.length === 0) {
   throw new Error("No valid ports provided.");
 }
 
-console.log("isBot:", isBot);
-console.log("Ports to connect:", portArr);
-
 
 function makeElectronApp(portArr) {
     let win;
@@ -71,8 +68,9 @@ function makeElectronApp(portArr) {
 }
 
 function handleBotConnection() {
+  
   const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048,
+    modulusLength: 512, // Shorter key size for testing
     publicKeyEncoding: {
       type: 'spki',
       format: 'pem'
@@ -83,22 +81,29 @@ function handleBotConnection() {
     }
   });
 
-  console.log(publicKey);
-  console.log(privateKey);
-
   const timestamp = Date.now().toString();
   const signer = crypto.createSign('SHA256');
   signer.update(timestamp);
-  const signature = signer.sign(privateKey, 'base64');
 
-  fetch('http://localhost:3001/', {
+  const encodedSignature = signer.sign(privateKey, 'base64');
+  const encodedPublicKey = Buffer.from(publicKey).toString('base64');
+
+  // const dbCommand = "add 'user1' '{\"name\": \"Alice\", \"age\": 25}'"
+  const dbCommand = "read *"
+
+  fetch('http://localhost:3002/', {
+    method: 'POST',
     headers: {
-      'x-public-key': 'your-bot-id',
-      'x-signature': signature,
-      'x-timestamp': timestamp
-    }
-  })
-  .then(res => res.json())
+        'Content-Type': 'application/json', // Make sure this is set
+        'x-public-key': encodedPublicKey,
+        'x-signature': encodedSignature,
+        'x-timestamp': timestamp
+    },
+    body: JSON.stringify({
+        inputData: dbCommand
+    })
+})
+  .then(res => res.text())
   .then(console.log)
   .catch(console.error);
 }

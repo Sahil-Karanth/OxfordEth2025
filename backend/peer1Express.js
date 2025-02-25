@@ -70,8 +70,12 @@ app.post('/', async (req, res) => {
 
         console.log(req.body)
 
-        const username = req.body.username
+        var username = req.body.username
         const commandString = req.body.inputData
+
+        if (req.headers['x-public-key']) {
+            username = req.header['x-public-key']
+        }
     
         if (!commandString) {
             return res.status(400).send('Request did not receive db command');
