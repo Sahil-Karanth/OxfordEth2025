@@ -105,6 +105,46 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
     import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
 
+    async function maybeSendNodeReq(port, reqObj) {
+      try {
+        const response = await fetch(
+              `http://localhost:${port}`,
+              reqObj
+            );
+        return response
+      } catch (err) {
+        return null
+      }
+    }
+  
+    async function multiNodeReqs(portArray, reqObj) {
+      let responseText = "COULDN'T CONNECT TO ANY PEERS";
+
+      var iterCount = 0;
+      while (true) {
+          const portToConnect = portArray[0];
+          const response = await maybeSendNodeReq(portToConnect, reqObj);
+
+          if (response != null) {
+              console.log(`SUCCESS on port ${portToConnect}`)
+              responseText = await response.text();
+              break;
+          } else {
+              console.log(`port ${portToConnect} failed to connect`)
+              // move to end of queue
+              portArray.splice(0, 1)
+              portArray.push(portToConnect)
+          }
+
+          if (iterCount == portArray.length) {
+              break
+          }
+
+          iterCount += 1
+      }
+      return responseText
+    }
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
@@ -128,29 +168,6 @@
           .split(",")
           .map(Number)
           .filter(port => !isNaN(port));
-
-    async function maybeSendNodeReq(port, idToken, inputText) {
-      try {
-        const response = await fetch(
-              `http://localhost:${port}`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify({
-                  username: localStorage.getItem('username'),
-                  inputData: inputText
-                })
-              }
-            );
-        return response
-      } catch (err) {
-        console.log(err)
-        return null
-      }
-    }
     
     submitBtn.addEventListener('click', async () => {
       try {
@@ -165,30 +182,20 @@
 
         const idToken = await user.getIdToken(true);
 
-
-        let responseText = "COULDN'T CONNECT TO ANY PEERS";
-
-        var iterCount = 0
-        while (true) {
-          console.log(portArray)
-          const portToConnect = portArray[0];
-          const response = await maybeSendNodeReq(portToConnect, idToken, inputText);
-
-          if (response != null) {
-            responseText = await response.text();
-            break;
-          } else {
-            // move to end of queue
-            portArray.splice(0, 1)
-            portArray.push(portToConnect)
-          }
-
-          if (iterCount == portArray.length) {
-            break
-          }
-
-          iterCount += 1
+        const reqObj =
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify({
+            username: localStorage.getItem('username'),
+            inputData: inputText
+          })
         }
+
+        const responseText = await multiNodeReqs(portArray, reqObj);
 
         
         outputField.value = responseText

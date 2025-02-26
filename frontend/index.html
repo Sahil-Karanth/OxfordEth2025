@@ -126,7 +126,7 @@
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
         console.log('Logged in as:', user.email);
-        localStorage.setItem('username', username); // Store original username
+        localStorage.setItem('username', username);
         window.location.href = 'home.html';
       } catch (error) {
         console.error('Login error:', error);
