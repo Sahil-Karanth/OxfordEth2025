@@ -13,7 +13,7 @@ To start the project, follow these steps:
    cd backend
    ./bash.sh n m
    ```
-   - This command requires two arguments:
+   - This command requires arguments:
      - **n**: Number of nodes in the P2P network.
      - **m**: Degree of each node (how many nodes it's connected to).
    - Example:
@@ -23,13 +23,13 @@ To start the project, follow these steps:
 3. Navigate to the frontend folder and start the frontend:
    ```sh
    cd frontend
-   npm start b
+   npm start b p1,p2,p3
    ```
    - This command requires one argument:
      - **b**: `'true'` or `'false'`
      - `'false'`: Runs in GUI mode.
      - `'true'`: Runs in bot mode.
-
+     -  **p1,p2,...** List of ports that the client can connect to
 # Custom Query Language for GunDB
 
 ## Overview
