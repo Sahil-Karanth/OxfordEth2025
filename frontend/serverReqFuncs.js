@@ -1,39 +1,50 @@
-async function maybeSendNodeReq(port, reqObj) {
+async function maybeSendNodeReq(portObj, reqObj) {
     try {
-      const response = await fetch(
-            `http://localhost:${port}`,
+        const response = await fetch(
+            `http://localhost:${portObj.port}`,
             reqObj
           );
-      return response
+
+        const randomNumber = Math.floor(Math.random() * 100) + 1;
+        console.log(`current fail chance is ${port.failChance}`)
+        if (randomNumber < portObj.failChance) return null
+          
+        return response
     } catch (err) {
-      return null
+        return null
     }
 }
   
-async function multiNodeReqs(portArray, reqObj) {
-    let responseText = "COULDN'T CONNECT TO ANY PEERS";
+async function multiNodeReqs(portFailChancePairs, reqObj) {
 
+    
+    let responseText = "COULDN'T CONNECT TO ANY PEERS";
+    
     var iterCount = 0;
     while (true) {
-        const portToConnect = portArray[0];
-        const response = await maybeSendNodeReq(portToConnect, reqObj);
+
+        iterCount += 1
+
+        const portObj = portFailChancePairs[0]
+        const response = await maybeSendNodeReq(portObj, reqObj);
+
+        if (!(portObj.failChance >= 0 && portObj.failChance <= 100)) throw Error("Invalid failure chance")
 
         if (response != null) {
-            console.log(`SUCCESS on port ${portToConnect}`)
+            console.log(`SUCCESS on port ${portObj.port}`)
             responseText = await response.text();
             break;
         } else {
-            console.log(`port ${portToConnect} failed to connect`)
-            // move to end of queue
-            portArray.splice(0, 1)
-            portArray.push(portToConnect)
+            console.log(`port ${portObj.port} failed to connect`)
+            // round robin
+            portFailChancePairs.splice(0, 1)
+            portFailChancePairs.push(portObj)
         }
 
-        if (iterCount == portArray.length) {
+        if (iterCount == portFailChancePairs.length) {
             break
         }
 
-        iterCount += 1
     }
     return responseText
 }

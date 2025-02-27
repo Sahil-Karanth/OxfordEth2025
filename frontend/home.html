@@ -105,46 +105,100 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
     import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
 
-    async function maybeSendNodeReq(port, reqObj) {
+
+
+    async function maybeSendNodeReq(portObj, reqObj) {
       try {
-        const response = await fetch(
-              `http://localhost:${port}`,
+          const response = await fetch(
+              `http://localhost:${portObj.port}`,
               reqObj
             );
-        return response
+
+          const randomNumber = Math.floor(Math.random() * 100) + 1;
+          if (randomNumber < portObj.failChance) return null
+            
+          return response
       } catch (err) {
-        return null
+          return null
       }
     }
-  
-    async function multiNodeReqs(portArray, reqObj) {
-      let responseText = "COULDN'T CONNECT TO ANY PEERS";
+    
+    async function multiNodeReqs(portFailChancePairs, reqObj) {
 
+      let responseText = "COULDN'T CONNECT TO ANY PEERS";
+      
       var iterCount = 0;
       while (true) {
-          const portToConnect = portArray[0];
-          const response = await maybeSendNodeReq(portToConnect, reqObj);
 
+        try {
+          iterCount += 1
+  
+          const portObj = portFailChancePairs[0]
+          const response = await maybeSendNodeReq(portObj, reqObj);
+  
+          if (!(portObj.failChance >= 0 && portObj.failChance <= 100)) throw Error("Invalid failure chance")
+  
           if (response != null) {
-              console.log(`SUCCESS on port ${portToConnect}`)
+              console.log(`SUCCESS on port ${portObj.port}`)
               responseText = await response.text();
               break;
           } else {
-              console.log(`port ${portToConnect} failed to connect`)
-              // move to end of queue
-              portArray.splice(0, 1)
-              portArray.push(portToConnect)
+              console.log(`port ${portObj.port} failed to connect`)
+              // round robin
+              portFailChancePairs.splice(0, 1)
+              portFailChancePairs.push(portObj)
           }
-
-          if (iterCount == portArray.length) {
+  
+          if (iterCount == portFailChancePairs.length) {
               break
           }
 
-          iterCount += 1
+        } catch (err) {
+          console.log(err)
+        }
+
+
       }
       return responseText
     }
 
+    function parsePortObjArr(portFailChanceString) {
+      // Handle empty string or empty array representation
+      if (!portFailChanceString || portFailChanceString === "[()]") {
+        return [];
+      }
+
+      // Remove the outer square brackets
+      const trimmedString = portFailChanceString.slice(1, -1);
+
+      // Split by "),(" to separate individual pairs
+      const pairs = trimmedString.split("),(");
+
+      // Convert the string into an array of objects
+      const portFailChancePairs = pairs
+        .map((pair) => {
+          // Remove any remaining brackets and split by comma
+          const [port, failChance] = pair.replace(/[()]/g, "").split(",");
+
+          // Convert to numbers
+          const portNum = parseInt(port, 10);
+          const failChanceNum = parseInt(failChance, 10);
+
+          // Validate port and failure chance
+          if (isNaN(portNum)) {
+            throw new Error(`Invalid port number: ${port}`);
+          }
+          if (isNaN(failChanceNum) || failChanceNum < 0 || failChanceNum > 100) {
+            throw new Error(`Invalid failure chance: ${failChance}`);
+          }
+
+          // Return the object
+          return { port: portNum, failChance: failChanceNum };
+        })
+        .filter((pair) => !isNaN(pair.port)); // Filter out invalid pairs
+
+      return portFailChancePairs;
+    }
 
     const firebaseConfig = {
       apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
@@ -164,10 +218,10 @@
     const outputField = document.getElementById('outputField');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    var portArray = (localStorage.getItem("portArray") || "")
-          .split(",")
-          .map(Number)
-          .filter(port => !isNaN(port));
+
+    var portObjArr = parsePortObjArr(localStorage.getItem("portObjArr") || "")
+
+
     
     submitBtn.addEventListener('click', async () => {
       try {
@@ -195,7 +249,7 @@
           })
         }
 
-        const responseText = await multiNodeReqs(portArray, reqObj);
+        const responseText = await multiNodeReqs(portObjArr, reqObj);
 
         
         outputField.value = responseText

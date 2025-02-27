@@ -1,15 +1,14 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const crypto = require('crypto');
 const { multiNodeReqs } = require('./serverReqFuncs')
 
 const args = process.argv.slice(2);
 
 let isBot = false;
-let portArr = [];
+let portFailChancePairs = [];
 
-// Check for the flag argument (true/false)
 if (args.length < 2) {
-  throw new Error("Usage: npm start <true/false> <port1,port2,...>");
+  throw new Error("Usage: npm start <isBot> <[(port1,failChance1),(port2,failChance2),...]>");
 }
 
 const arg = args[0]?.toLowerCase();
@@ -24,16 +23,42 @@ if (arg === "true") {
   );
 }
 
-portArr = args[1]
-  .split(",")
-  .map(Number)
-  .filter((port) => !isNaN(port));
+const pairsInput = args[1];
 
-if (portArr.length === 0) {
-  throw new Error("No valid ports provided.");
+if (!/^\[(\(\d+,\d+\))(,\(\d+,\d+\))*\]$/.test(pairsInput)) {
+  throw new Error(
+    `Invalid input format. Expected [(port1,failChance1),(port2,failChance2),...], but got ${pairsInput}`
+  );
 }
 
-function makeElectronApp(portArr) {
+portFailChancePairs = pairsInput
+  .slice(1, -1)
+  .split(/\),\(/)
+  .map((pair) => {
+    const [port, failChance] = pair.replace(/[()]/g, "").split(",");
+    const portNum = parseInt(port, 10);
+    const failChanceNum = parseInt(failChance, 10);
+
+    if (isNaN(portNum) || portNum < 0 || portNum > 65535) {
+      throw new Error(`Invalid port number: ${port}`);
+    }
+    if (isNaN(failChanceNum) || failChanceNum < 0 || failChanceNum > 100) {
+      throw new Error(`Invalid failure chance: ${failChance}`);
+    }
+
+    return { port: portNum, failChance: failChanceNum };
+  });
+
+if (portFailChancePairs.length === 0) {
+  throw new Error("No valid port-failure chance pairs provided.");
+}
+
+console.log("isBot:", isBot);
+portFailChancePairs.forEach((portObj) => {
+  console.log(`port ${portObj.port} (${portObj.failChance}% failure chance)`)
+});
+
+function makeElectronApp(portsAndFailures) {
   let win;
 
   function createWindow() {
@@ -48,8 +73,12 @@ function makeElectronApp(portArr) {
 
     win.loadFile("index.html");
 
+    const portsAndFailuresString = `[${portsAndFailures
+      .map(({ port, failChance }) => `(${port},${failChance})`)
+      .join(",")}]`;
+
     win.webContents.once("did-finish-load", () => {
-      win.webContents.send("set-port-array", portArr);
+      win.webContents.send("set-ports", portsAndFailuresString);
     });
   }
 
@@ -104,13 +133,13 @@ async function handleBotConnection() {
     }),
   };
 
-  const responseText = await multiNodeReqs(portArr, reqObj);
+  const responseText = await multiNodeReqs(portFailChancePairs, reqObj, 100);
 
   console.log(responseText);
 }
 
 if (!isBot) {
-  makeElectronApp(portArr);
+  makeElectronApp(portFailChancePairs);
 } else {
   handleBotConnection();
 }

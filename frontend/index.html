@@ -79,8 +79,8 @@
 
     const { ipcRenderer } = require('electron');
     let portArrVar;
-    ipcRenderer.on('set-port-array', (event, portArr) => {
-      localStorage.setItem("portArray", portArr)
+    ipcRenderer.on('set-ports', (event, portObjArr) => {
+      localStorage.setItem("portObjArr", portObjArr.toString())
     });
 
     const firebaseConfig = {
