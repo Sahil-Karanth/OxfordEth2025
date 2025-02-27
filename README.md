@@ -1,5 +1,5 @@
 # Project Introduction
-We have tackled the decentralised memory organ bounty for the Torus network at Eth Oxford 2025. Our p2p distributed database is fault tolerant without a single point of failure and can easily be scaled horizontally by adding more peers on the network. Our system provides a decentralised peer-to-peer network, in memory caching, a custom query language with CRUD operations, a secure API to access the network, a tamper-proof design via encryption and an alternative access path for bots and humans.
+We have tackled the decentralised memory organ bounty for the Torus network at Eth Oxford 2025. Our p2p distributed database is fault tolerant without a single point of failure since client code can access any p2p node, moving failed nodes to the back of a queue and can easily be scaled horizontally by adding more peers on the network. Our system provides a decentralised peer-to-peer network, in memory caching, a custom query language with CRUD operations, a secure API to access the network, a tamper-proof design via encryption and an alternative access path for bots and humans.
 
 ## Starting the Project
 To start the project, follow these steps:
