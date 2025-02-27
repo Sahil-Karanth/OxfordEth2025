@@ -133,7 +133,7 @@ async function handleBotConnection() {
     }),
   };
 
-  const responseText = await multiNodeReqs(portFailChancePairs, reqObj, 100);
+  const responseText = await multiNodeReqs(portFailChancePairs, reqObj);
 
   console.log(responseText);
 }

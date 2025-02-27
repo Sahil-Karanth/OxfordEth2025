@@ -109,16 +109,20 @@
 
     async function maybeSendNodeReq(portObj, reqObj) {
       try {
-          const response = await fetch(
-              `http://localhost:${portObj.port}`,
-              reqObj
-            );
 
-          const randomNumber = Math.floor(Math.random() * 100) + 1;
-          if (randomNumber < portObj.failChance) return null
-            
-          return response
+        const randomNumber = Math.floor(Math.random() * 100) + 1;
+
+        if (randomNumber < portObj.failChance) return null;
+          
+
+        const response = await fetch(
+            `http://localhost:${portObj.port}`,
+            reqObj
+          );
+
+        return response
       } catch (err) {
+          console.log(err)
           return null
       }
     }
