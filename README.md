@@ -247,22 +247,6 @@ import { createServer } from 'http';
 import { queryLang } from './query.js';
 ```
 
-## API Key Generation
-The system generates API keys for authentication:
-```javascript
-const validApiKeys = new Map();
-
-function generateApiKey(botId) {
-    const apiKey = crypto.randomBytes(32).toString('hex');
-    validApiKeys.set(apiKey, {
-      botId: botId,
-      createdAt: new Date(),
-      permissions: ['read', 'write']
-    });
-    return apiKey;
-}
-```
-
 ## Command Line Arguments
 The server expects at least two arguments:
 - **PORT**: The port the server listens on
@@ -285,28 +269,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use('/', decodeToken);
-```
-
-## Test Endpoint
-A test endpoint is available for health checks:
-```javascript
-app.get('/test', (req, res) => {
-    console.log("TEST REQ RECEIVED");
-    res.status(200).send('OK');
-});
-```
-
-## GunDB Initialization
-GunDB is initialized with Redis for caching:
-```javascript
-const nodeServer = createServer(app);
-const REDIS_PORT = 6379;
-const gun = Gun({
-    peers: connectedPeers,
-    file: 'data1.json',
-    redis: { host: '127.0.0.1', port: REDIS_PORT },
-    web: nodeServer
-});
 ```
 
 ## Server Start
@@ -362,106 +324,59 @@ app.post('/', async (req, res) => {
 ## Conclusion
 This Express server integrates GunDB with a REST API to facilitate decentralized storage and retrieval of data using a custom query language. The server supports authentication, command execution, and peer-to-peer networking.
 
-# Firebase Authentication: Humans & AI Bots
+## Frontend: Electron App with Bot Support and Fault-Tolerant Node Requests
 
-## Overview
-This documentation explains how Firebase authentication supports both human users via Firebase Authentication and AI bots using digital signatures. The backend verifies user authentication based on Firebase tokens for humans and cryptographic signatures for bots.
-
-## Backend: Authentication Middleware
-The middleware `decodeToken` distinguishes between human users and AI bots.
+The frontend detects whether the application is being run as a bot or a human user and authenticates accordingly. It also includes a fault-tolerant queueing mechanism to handle failed node connections.
 
 ### Dependencies
 ```javascript
-import crypto from 'crypto';
-import { auth } from './firebaseConfig.js';
-```
-
-### Trusted Public Keys
-A predefined set of trusted public keys is used to verify bot authenticity.
-```javascript
-const TRUSTED_PUBLIC_KEYS = new Set([
-  `-----BEGIN PUBLIC KEY-----
-  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
-  -----END PUBLIC KEY-----`
-]);
-```
-
-### Authentication Logic
-```javascript
-const decodeToken = async (req, res, next) => {
-  try {
-    const publicKey = req.headers['x-public-key'];
-    const signature = req.headers['x-signature'];
-    const timestamp = req.headers['x-timestamp'];
-    
-    if (publicKey && signature && timestamp) {
-      if (!TRUSTED_PUBLIC_KEYS.has(publicKey)) {
-        return res.status(401).json({ message: "Untrusted public key (unknown agent)" });
-      }
-      
-      const verifier = crypto.createVerify('SHA256');
-      verifier.update(timestamp);
-      const isValidSignature = verifier.verify(publicKey, signature, 'base64');
-      
-      if (isValidSignature) {
-        req.isBot = true;
-        req.publicKey = publicKey;
-        return next();
-      }
-      return res.status(401).json({ message: "Invalid signature" });
-    }
-
-    // Firebase Authentication for Humans
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decodedToken = await auth.verifyIdToken(token);
-
-    if (decodedToken) {
-      req.isBot = false;
-      req.user = decodedToken;
-      return next();
-    }
-
-    return res.status(401).json({ message: "Unauthorized" });
-  } catch (error) {
-    console.error('Auth error:', error);
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-};
-
-export { decodeToken };
-```
-
-## Frontend: Electron App with Bot Support
-The frontend detects whether the application is being run as a bot or a human user and authenticates accordingly.
-
-### Dependencies
-```javascript
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const crypto = require('crypto');
+const { multiNodeReqs } = require('./serverReqFuncs');
 ```
 
 ### Argument Parsing for Bot Mode
-```javascript
-const arg = process.argv[2].toLowerCase();
-let isBot = false;
+The application expects two command-line arguments:
+1. A flag (`true/false`) to indicate bot mode.
+2. A comma-separated list of ports for node communication.
 
-if (arg == "true") {
+```javascript
+const args = process.argv.slice(2);
+
+let isBot = false;
+let portArr = [];
+
+if (args.length < 2) {
+  throw new Error("Usage: npm start <true/false> <port1,port2,...>");
+}
+
+const arg = args[0]?.toLowerCase();
+
+if (arg === "true") {
   isBot = true;
-} else if (arg != "false") {
+} else if (arg === "false") {
+  isBot = false;
+} else {
   throw new Error(`Incorrect argument. Expected 'true' or 'false', but got ${arg}`);
+}
+
+portArr = args[1]
+  .split(",")
+  .map(Number)
+  .filter((port) => !isNaN(port));
+
+if (portArr.length === 0) {
+  throw new Error("No valid ports provided.");
 }
 ```
 
 ### Electron App for Human Users
+Creates an Electron window and sends the port list to the renderer process.
+
 ```javascript
-function makeElectronApp() {
+function makeElectronApp(portArr) {
   let win;
-  
+
   function createWindow() {
     win = new BrowserWindow({
       width: 800,
@@ -469,19 +384,25 @@ function makeElectronApp() {
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
-      }
+      },
     });
-    win.loadFile('index.html');
+
+    win.loadFile("index.html");
+
+    win.webContents.once("did-finish-load", () => {
+      win.webContents.send("set-port-array", portArr);
+    });
   }
-  
+
   app.whenReady().then(() => {
     createWindow();
-    app.on('window-all-closed', () => {
-      if (process.platform !== 'darwin') app.quit();
+
+    app.on("window-all-closed", () => {
+      if (process.platform !== "darwin") app.quit();
     });
   });
-  
-  app.on('activate', () => {
+
+  app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
@@ -490,46 +411,96 @@ function makeElectronApp() {
 ```
 
 ### Bot Authentication with Digital Signatures
-Bots use asymmetric cryptography for authentication.
+Bots use asymmetric cryptography for authentication and communicate with multiple nodes.
+
 ```javascript
-function handleBotConnection() {
-  const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-    modulusLength: 2048,
+async function handleBotConnection() {
+  const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
+    modulusLength: 512,
     publicKeyEncoding: {
-      type: 'spki',
-      format: 'pem'
+      type: "spki",
+      format: "pem",
     },
     privateKeyEncoding: {
-      type: 'pkcs8',
-      format: 'pem'
-    }
+      type: "pkcs8",
+      format: "pem",
+    },
   });
-  
-  console.log(publicKey);
-  console.log(privateKey);
-  
+
   const timestamp = Date.now().toString();
-  const signer = crypto.createSign('SHA256');
+  const signer = crypto.createSign("SHA256");
   signer.update(timestamp);
-  const signature = signer.sign(privateKey, 'base64');
-  
-  fetch('http://localhost:3001/', {
+
+  const encodedSignature = signer.sign(privateKey, "base64");
+  const encodedPublicKey = Buffer.from(publicKey).toString("base64");
+
+  const dbCommand = "read *";
+
+  const reqObj = {
+    method: "POST",
     headers: {
-      'x-public-key': publicKey,
-      'x-signature': signature,
-      'x-timestamp': timestamp
+      "Content-Type": "application/json",
+      "x-public-key": encodedPublicKey,
+      "x-signature": encodedSignature,
+      "x-timestamp": timestamp,
+    },
+    body: JSON.stringify({ inputData: dbCommand }),
+  };
+
+  const responseText = await multiNodeReqs(portArr, reqObj);
+  console.log(responseText);
+}
+```
+
+### Fault-Tolerant Node Requests
+If a request to a node fails, the function will retry with the next available node in a round-robin fashion.
+
+#### Sending a Request to a Node
+```javascript
+async function maybeSendNodeReq(port, reqObj) {
+  try {
+    const response = await fetch(`http://localhost:${port}`, reqObj);
+    return response;
+  } catch (err) {
+    return null;
+  }
+}
+```
+
+#### Handling Failed Node Requests with a Queue
+```javascript
+async function multiNodeReqs(portArray, reqObj) {
+  let responseText = "COULDN'T CONNECT TO ANY PEERS";
+  let iterCount = 0;
+
+  while (true) {
+    const portToConnect = portArray[0];
+    const response = await maybeSendNodeReq(portToConnect, reqObj);
+
+    if (response != null) {
+      console.log(`SUCCESS on port ${portToConnect}`);
+      responseText = await response.text();
+      break;
+    } else {
+      console.log(`Port ${portToConnect} failed to connect`);
+      portArray.splice(0, 1);
+      portArray.push(portToConnect);
     }
-  })
-  .then(res => res.json())
-  .then(console.log)
-  .catch(console.error);
+
+    if (iterCount === portArray.length) {
+      break;
+    }
+
+    iterCount += 1;
+  }
+  return responseText;
 }
 ```
 
 ### Executing the Correct Authentication Flow
 ```javascript
 if (!isBot) {
-  makeElectronApp();
+  makeElectronApp(portArr);
 } else {
   handleBotConnection();
 }
@@ -538,8 +509,10 @@ if (!isBot) {
 ## Summary
 - **Human users** authenticate via Firebase Authentication tokens.
 - **AI bots** authenticate using digital signatures verified against trusted public keys.
-- The frontend determines whether the process is a bot or a human user.
-- Secure cryptographic signatures prevent unauthorized bot access.
+- **Fault tolerance**: If a node fails, the request is retried with the next available node in a round-robin manner.
+- **The frontend dynamically determines** whether the process is a bot or a human user.
+- **Secure cryptographic signatures** prevent unauthorized bot access.
+
 
 
 
