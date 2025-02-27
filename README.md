@@ -23,13 +23,17 @@ To start the project, follow these steps:
 3. Navigate to the frontend folder and start the frontend:
    ```sh
    cd frontend
-   npm start b p1,p2,p3
+   npm start b "[(p1,f1),(p2,f2),(p3,f3)...]"
    ```
    - This command requires one argument:
      - **b**: `'true'` or `'false'`
      - `'false'`: Runs in GUI mode.
      - `'true'`: Runs in bot mode.
-     -  **p1,p2,...** List of ports that the client can connect to
+     -  **[(p1,f1),(p2,f2),(p3,f3)...]** List of ports that the client can connect to and their respective chance of failure (percentage)
+   - Example:
+     ```javascript
+     npm start false "[(3001,20),(3002,80),(3004,90),(3006,95)]"
+     ```
 # Custom Query Language for GunDB
 
 ## Overview
