@@ -62,6 +62,7 @@ app.post('/', async (req, res) => {
         res.status(200).send(databaseOutput)
 
     } catch (e) {
+        console.log(e)
         res.status(500).send('Internal server error in sending db command')
     }
 })

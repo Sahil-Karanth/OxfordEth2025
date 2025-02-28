@@ -1,11 +1,10 @@
 import crypto from 'crypto';
 
-var TRUSTED_BOT_PUBLIC_KEYS = new Set([
-  `-----BEGIN PUBLIC KEY-----
-  MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAL2dCLhxoKzPwhV0rM48KzFWcRMy/3SM
-  AFfpKmgusbFHirLrpLcAY0h80K1CqcCrug3AlUgRk5Ln/UgDXNvi99ECAwEAAQ==
-  -----END PUBLIC KEY-----`.split(String.raw`\n`).join('\n')
-]);
+// set of base-64 encoded public keys that are recognised (in production would be in a secure store)
+    // but the point is in reality this would be externally managed by the Torus Network
+
+// add some generated public key you want to be recognised if you comment out the `TRUSTED_BOT_PUBLIC_KEYS.add(encodedPublicKey);` line
+var TRUSTED_BOT_PUBLIC_KEYS = new Set([`LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZ3d0RRWUpLb1pJaHZjTkFRRUJCUUFEU3dBd1NBSkJBS1BCejYrQzkya3djZ1pnUXZZRlZSTVhhd3N2RForLwpoSUhSRjEyRVV1SURHQ01zVisrRGRMRVpjMUJHd3hZTUM0amM5anJBY052UnVCdVc1QXVpVUVVQ0F3RUFBUT09Ci0tLS0tRU5EIFBVQkxJQyBLRVktLS0tLQo=`]);
 
 
 const decodeToken = async (req, res, next) => {
@@ -19,16 +18,18 @@ const decodeToken = async (req, res, next) => {
       const publicKey = Buffer.from(encodedPublicKey, 'base64').toString('utf8');
       const signature = Buffer.from(encodedSignature, 'base64').toString('utf8');
 
-      TRUSTED_BOT_PUBLIC_KEYS.add(publicKey);
+      // FOR ILLUSTRATIVE PURPOSES ONLY - REMOVE TO TEST 'UNKNOWN BOT'
+      TRUSTED_BOT_PUBLIC_KEYS.add(encodedPublicKey);
       
       // Verify timestamp is within last 5 minutes
+      // Change this time to make a signature be valid for longer (e.g. useful for testing older key,signature pairs)
       const timestampNum = parseInt(timestamp); 
       if (Date.now() - timestampNum > 5 * 60 * 1000) {
           return res.status(401).json({ message: "Timestamp too old" });
         }
     
 
-      if (!(TRUSTED_BOT_PUBLIC_KEYS.has(publicKey))) {
+      if (!(TRUSTED_BOT_PUBLIC_KEYS.has(encodedPublicKey))) {
         return res.status(401).json({ message: "Unknown bot" });
       }
 
