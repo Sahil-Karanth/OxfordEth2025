@@ -1,3 +1,4 @@
+import { auth } from './firebaseConfig.js';
 import crypto from 'crypto';
 
 var TRUSTED_BOT_PUBLIC_KEYS = new Set([
@@ -10,7 +11,6 @@ var TRUSTED_BOT_PUBLIC_KEYS = new Set([
 
 const decodeToken = async (req, res, next) => {
   try {
-
     // Check for bot authentication
     const encodedPublicKey = req.headers['x-public-key'];
     const encodedSignature = req.headers['x-signature'];
@@ -20,15 +20,13 @@ const decodeToken = async (req, res, next) => {
       const publicKey = Buffer.from(encodedPublicKey, 'base64').toString('utf8');
       const signature = Buffer.from(encodedSignature, 'base64').toString('utf8');
 
-      
       TRUSTED_BOT_PUBLIC_KEYS.add(publicKey);
       
       // Verify timestamp is within last 5 minutes to prevent replay attacks
       const timestampNum = parseInt(timestamp); 
       if (Date.now() - timestampNum > 5 * 60 * 1000) {
-          return res.status(401).json({ message: "Timestamp too old" });
-        }
-    
+        return res.status(401).json({ message: "Timestamp too old" });
+      }
 
       if (!(TRUSTED_BOT_PUBLIC_KEYS.has(publicKey))) {
         return res.status(401).json({ message: "Unknown bot" });
@@ -39,9 +37,6 @@ const decodeToken = async (req, res, next) => {
       verifier.update(timestamp);
       const isValidSignature = verifier.verify(publicKey, encodedSignature, 'base64');
 
-    //   res.send("fck it we ball")
-
-
       if (isValidSignature) {
         req.isBot = true;
         return next();
@@ -50,11 +45,24 @@ const decodeToken = async (req, res, next) => {
       return res.status(401).json({ message: "Invalid signature" });
     }
 
-    return res.status(401).json({ message: "Missing headers in request" });
-  } catch (error) {
-    if (error.code === "ERR_OSSL_UNSUPPORTED") {
-        return res.status(401).json({message: "OPENSSL error: malformed key/signature"})
+    // Regular Firebase token auth for humans
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const token = authHeader.split(" ")[1];
+    const decodedToken = await auth.verifyIdToken(token);
+
+    if (decodedToken) {
+      req.isBot = false;
+      req.user = decodedToken;
+      return next();
+    }
+
+    return res.status(401).json({ message: "Unauthorized" });
+  } catch (error) {
+    console.error('Auth error:', error);
     return res.status(401).json({ message: error });
   }
 };

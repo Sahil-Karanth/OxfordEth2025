@@ -4,7 +4,6 @@ async function maybeSendNodeReq(portObj, reqObj) {
       const randomNumber = Math.floor(Math.random() * 100) + 1;
 
       if (randomNumber < portObj.failChance) return null;
-        
 
       const response = await fetch(
           `http://localhost:${portObj.port}`,
@@ -17,7 +16,7 @@ async function maybeSendNodeReq(portObj, reqObj) {
         return null
     }
 }
-  
+
 async function multiNodeReqs(portFailChancePairs, reqObj) {
 
     let responseText = "COULDN'T CONNECT TO ANY PEERS";

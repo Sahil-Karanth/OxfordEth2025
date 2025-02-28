@@ -5,17 +5,6 @@ import { decodeToken } from './middleware.js';
 import { createServer } from 'http';    
 import { queryLang } from './query.js'
 
-const validApiKeys = new Map();
-
-function generateApiKey(botId) {
-    const apiKey = crypto.randomBytes(32).toString('hex');
-    validApiKeys.set(apiKey, {
-      botId: botId,
-      createdAt: new Date(),
-      permissions: ['read', 'write']
-    });
-    return apiKey;
-  }
 
 let args = process.argv.slice(2).map(Number);
 
@@ -47,9 +36,9 @@ const REDIS_PORT = 6379
 
 const gun = Gun({
     peers: connectedPeers, // Other peers will connect to this
-    file: 'data1.json', // Storage file
+    file: 'data1.json',
     redis: { host: '127.0.0.1', port: REDIS_PORT },
-    web: nodeServer // Start server
+    web: nodeServer
 });
 
 nodeServer.listen(PORT, () => {
@@ -68,20 +57,22 @@ app.post('/', async (req, res) => {
 
     try {
 
+        // res.status(200).send("got to post!")
+
         console.log(req.body)
 
-        var username = req.body.username
+        var publicKey = req.headers['x-public-key']
         const commandString = req.body.inputData
 
-        if (req.headers['x-public-key']) {
-            username = req.header['x-public-key']
-        }
+        // if (req.headers['x-public-key']) {
+        //     username = req.header['x-public-key']
+        // }
     
         if (!commandString) {
             return res.status(400).send('Request did not receive db command');
         }
 
-        const databaseOutput = await queryLang(username, commandString)
+        const databaseOutput = await queryLang(publicKey, commandString)
         res.status(200).send(databaseOutput)
 
     } catch (e) {

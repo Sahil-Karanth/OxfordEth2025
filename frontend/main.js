@@ -55,49 +55,10 @@ if (portFailChancePairs.length === 0) {
 
 console.log("isBot:", isBot);
 portFailChancePairs.forEach((portObj) => {
-  console.log(`port ${portObj.port} (${portObj.failChance}% failure chance)`)
+  console.log(`port ${portObj.port} (${portObj.failChance}% programmed failure chance)`)
 });
 
-function makeElectronApp(portsAndFailures) {
-  let win;
-
-  function createWindow() {
-    win = new BrowserWindow({
-      width: 800,
-      height: 600,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-      },
-    });
-
-    win.loadFile("index.html");
-
-    const portsAndFailuresString = `[${portsAndFailures
-      .map(({ port, failChance }) => `(${port},${failChance})`)
-      .join(",")}]`;
-
-    win.webContents.once("did-finish-load", () => {
-      win.webContents.send("set-ports", portsAndFailuresString);
-    });
-  }
-
-  app.whenReady().then(() => {
-    createWindow();
-
-    app.on("window-all-closed", () => {
-      if (process.platform !== "darwin") app.quit();
-    });
-  });
-
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-}
-
-async function handleBotConnection() {
+function genAuthPair() {
   const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
     modulusLength: 512,
     publicKeyEncoding: {
@@ -116,6 +77,66 @@ async function handleBotConnection() {
 
   const encodedSignature = signer.sign(privateKey, "base64");
   const encodedPublicKey = Buffer.from(publicKey).toString("base64");
+
+  return {encodedPublicKey, encodedSignature, timestamp}
+}
+
+function makeElectronApp(portsAndFailures) {
+  let win;
+
+  function createWindow() {
+
+    const { encodedPublicKey, encodedSignature, timestamp } = genAuthPair();
+  
+    console.log(`${encodedPublicKey}\n\n${encodedSignature}`)
+
+    win = new BrowserWindow({
+      width: 800,
+      height: 600,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    });
+
+    win.loadFile("home.html");
+
+    // const portsAndFailuresString = `[${portsAndFailures
+    //   .map(({ port, failChance }) => `(${port},${failChance})`)
+    //   .join(",")}]`;
+
+    win.webContents.once("did-finish-load", () => {
+      win.webContents.send("set-ports", portsAndFailures);
+    });
+
+    win.webContents.once("did-finish-load", () => {
+      win.webContents.send("time-stamp", timestamp);
+    });
+
+  }
+
+  app.whenReady().then(() => {
+    createWindow();
+
+    app.on("window-all-closed", () => {
+      if (process.platform !== "darwin") app.quit();
+    });
+  });
+
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+}
+
+async function handleBotConnection() {
+
+  const { encodedPublicKey, encodedSignature, timestamp } = genAuthPair();
+
+
+  console.log(encodedPublicKey)
+  console.log(encodedSignature)
 
   // const dbCommand = "add 'user1' '{\"name\": \"Alice\", \"age\": 25}'"
   const dbCommand = "read *";

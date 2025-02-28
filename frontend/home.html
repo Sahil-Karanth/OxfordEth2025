@@ -7,52 +7,106 @@
   <style>
     body {
       background-color: #a2c8f4;
-      font-family: Arial, sans-serif;
-      padding: 20px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 15px;
+      box-sizing: border-box;
+    }
+
+    .main-wrapper {
+      display: flex;
+      width: 95%;
+      max-width: 900px;
+      align-items: center;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
+    .side-container {
+      width: 25%;
+      min-width: 200px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+    }
+
+    .side-container input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    .side-container input:focus {
+      outline: none;
+      border-color: #5d8c9e;
+      box-shadow: 0 0 0 3px rgba(93, 140, 158, 0.2);
     }
 
     .container {
-      width: 80%;
-      max-width: 500px;
+      width: 65%;
+      min-width: 280px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
     }
 
     h1 {
       text-align: center;
-      margin-bottom: 60px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      font-weight: 600;
+      font-size: 1.8rem;
     }
 
     .input-container {
       display: flex;
       width: 100%;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
+      justify-content: center;
     }
 
     #inputField {
       flex: 1;
-      padding: 10px;
+      padding: 12px 15px;
       font-size: 16px;
-      border-radius: 5px;
+      border-radius: 8px 0 0 8px;
       border: 1px solid #ddd;
+      border-right: none;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    #inputField:focus {
+      outline: none;
+      border-color: #5d8c9e;
+      box-shadow: 0 0 0 3px rgba(93, 140, 158, 0.2);
     }
 
     #submitBtn {
-      padding: 10px 20px;
+      padding: 12px 20px;
       font-size: 16px;
       background-color: #5d8c9e;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 0 8px 8px 0;
       cursor: pointer;
-      margin-left: 10px;
+      transition: background-color 0.3s ease;
     }
 
     #submitBtn:hover {
@@ -61,51 +115,101 @@
 
     #outputField {
       width: 100%;
-      height: 200px;
-      padding: 10px;
+      height: 180px;
+      padding: 15px;
       font-size: 16px;
-      border-radius: 5px;
+      border-radius: 8px;
       border: 1px solid #ddd;
       margin-top: 20px;
-      background-color: #f1f8ff;
+      background-color: #f8fbff;
       resize: none;
       white-space: pre-wrap;
+      transition: all 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    #outputField:focus {
+      outline: none;
+      border-color: #5d8c9e;
+      box-shadow: 0 0 0 3px rgba(93, 140, 158, 0.2);
     }
 
     #logoutBtn {
-      padding: 10px 20px;
+      padding: 12px 25px;
       font-size: 16px;
       background-color: #f44336;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       margin-top: 20px;
+      transition: background-color 0.3s ease;
     }
 
     #logoutBtn:hover {
       background-color: #d32f2f;
     }
+
+    .side-label {
+      font-size: 14px;
+      color: #2c3e50;
+      font-weight: 600;
+      margin-bottom: 8px;
+      align-self: flex-start;
+    }
+
+    @media (max-width: 768px) {
+      .main-wrapper {
+        flex-direction: column;
+        width: 100%;
+        gap: 20px;
+      }
+
+      .side-container {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>P2P File System Query</h1>
-    
-    <div class="input-container">
-      <input type="text" id="inputField" placeholder="Enter some text..." />
-      <button id="submitBtn">Submit</button>
+  <div class="main-wrapper">
+    <div class="side-container">
+      <div class="side-label">Authentication</div>
+      <input type="text" id="encodedPublicKey" placeholder="Encoded Public Key" />
+      <input type="text" id="encodedSignature" placeholder="Encoded Signature" />
     </div>
-
-    <textarea id="outputField" readonly></textarea>
-    <button id="logoutBtn">Logout</button>
+    
+    <div class="container">
+      <h1>P2P File System Query</h1>
+      
+      <div class="input-container">
+        <input type="text" id="inputField" placeholder="Enter your query here..." />
+        <button id="submitBtn">Submit</button>
+      </div>
+  
+      <textarea id="outputField" readonly placeholder="Results will appear here..."></textarea>
+    </div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-app.js";
-    import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/11.3.0/firebase-auth.js";
+  <script>
+    const { ipcRenderer } = require('electron');
 
+    let portObjArr;
+    ipcRenderer.on('set-ports', (event, portObjArrInp) => {
+      portObjArr = portObjArrInp
+      localStorage.setItem("portObjArr", portObjArrInp.toString())
+    });
 
+    let timestamp;
+    ipcRenderer.on('time-stamp', (event, timestampInp) => {
+      timestamp = parseInt(timestampInp, 10)
+    });
 
     async function maybeSendNodeReq(portObj, reqObj) {
       try {
@@ -113,7 +217,6 @@
         const randomNumber = Math.floor(Math.random() * 100) + 1;
 
         if (randomNumber < portObj.failChance) return null;
-          
 
         const response = await fetch(
             `http://localhost:${portObj.port}`,
@@ -126,143 +229,107 @@
           return null
       }
     }
-    
+
     async function multiNodeReqs(portFailChancePairs, reqObj) {
 
-      let responseText = "COULDN'T CONNECT TO ANY PEERS";
+        let responseText = "COULDN'T CONNECT TO ANY PEERS";
+
+        var iterCount = 0;
+        while (true) {
+
+            try {
+            iterCount += 1
+
+            const portObj = portFailChancePairs[0]
+            const response = await maybeSendNodeReq(portObj, reqObj);
+
+            if (!(portObj.failChance >= 0 && portObj.failChance <= 100)) throw Error("Invalid failure chance")
+
+            if (response != null) {
+                console.log(`SUCCESS on port ${portObj.port}`)
+                responseText = await response.text();
+                break;
+            } else {
+                console.log(`port ${portObj.port} failed to connect`)
+                // round robin
+                portFailChancePairs.splice(0, 1)
+                portFailChancePairs.push(portObj)
+            }
+
+            if (iterCount == portFailChancePairs.length) {
+                break
+            }
+
+            } catch (err) {
+            console.log(err)
+            }
+
+
+        }
+        return responseText
+    }
+
+    // function parsePortObjArr(portFailChanceString) {
+    //   // Handle empty string or empty array representation
+    //   if (!portFailChanceString || portFailChanceString === "[()]") {
+    //     return [];
+    //   }
+
+    //   // Remove the outer square brackets
+    //   const trimmedString = portFailChanceString.slice(1, -1);
+
+    //   // Split by "),(" to separate individual pairs
+    //   const pairs = trimmedString.split("),(");
+
+    //   // Convert the string into an array of objects
+    //   const portFailChancePairs = pairs
+    //     .map((pair) => {
+    //       // Remove any remaining brackets and split by comma
+    //       const [port, failChance] = pair.replace(/[()]/g, "").split(",");
+
+    //       // Convert to numbers
+    //       const portNum = parseInt(port, 10);
+    //       const failChanceNum = parseInt(failChance, 10);
+
+    //       // Validate port and failure chance
+    //       if (isNaN(portNum)) {
+    //         throw new Error(`Invalid port number: ${port}`);
+    //       }
+    //       if (isNaN(failChanceNum) || failChanceNum < 0 || failChanceNum > 100) {
+    //         throw new Error(`Invalid failure chance: ${failChance}`);
+    //       }
+
+    //       // Return the object
+    //       return { port: portNum, failChance: failChanceNum };
+    //     })
+    //     .filter((pair) => !isNaN(pair.port)); // Filter out invalid pairs
+
+    //   return portFailChancePairs;
+    // }
+
+    // var portObjArr = parsePortObjArr(localStorage.getItem("portObjArr") || "")
+
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+      const inputText = document.getElementById('inputField').value;
+      const encodedPublicKey = document.getElementById('encodedPublicKey').value;
+      const encodedSignature = document.getElementById('encodedSignature').value;
+
+      const reqObj = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-public-key": encodedPublicKey,
+          "x-signature": encodedSignature,
+          "x-timestamp": timestamp,
+        },
+        body: JSON.stringify({
+          inputData: inputText,
+        }),
+      };
       
-      var iterCount = 0;
-      while (true) {
+      const responseText = await multiNodeReqs(portObjArr, reqObj);
 
-        try {
-          iterCount += 1
-  
-          const portObj = portFailChancePairs[0]
-          const response = await maybeSendNodeReq(portObj, reqObj);
-  
-          if (!(portObj.failChance >= 0 && portObj.failChance <= 100)) throw Error("Invalid failure chance")
-  
-          if (response != null) {
-              console.log(`SUCCESS on port ${portObj.port}`)
-              responseText = await response.text();
-              break;
-          } else {
-              console.log(`port ${portObj.port} failed to connect`)
-              // round robin
-              portFailChancePairs.splice(0, 1)
-              portFailChancePairs.push(portObj)
-          }
-  
-          if (iterCount == portFailChancePairs.length) {
-              break
-          }
-
-        } catch (err) {
-          console.log(err)
-        }
-
-
-      }
-      return responseText
-    }
-
-    function parsePortObjArr(portFailChanceString) {
-      // Handle empty string or empty array representation
-      if (!portFailChanceString || portFailChanceString === "[()]") {
-        return [];
-      }
-
-      // Remove the outer square brackets
-      const trimmedString = portFailChanceString.slice(1, -1);
-
-      // Split by "),(" to separate individual pairs
-      const pairs = trimmedString.split("),(");
-
-      // Convert the string into an array of objects
-      const portFailChancePairs = pairs
-        .map((pair) => {
-          // Remove any remaining brackets and split by comma
-          const [port, failChance] = pair.replace(/[()]/g, "").split(",");
-
-          // Convert to numbers
-          const portNum = parseInt(port, 10);
-          const failChanceNum = parseInt(failChance, 10);
-
-          // Validate port and failure chance
-          if (isNaN(portNum)) {
-            throw new Error(`Invalid port number: ${port}`);
-          }
-          if (isNaN(failChanceNum) || failChanceNum < 0 || failChanceNum > 100) {
-            throw new Error(`Invalid failure chance: ${failChance}`);
-          }
-
-          // Return the object
-          return { port: portNum, failChance: failChanceNum };
-        })
-        .filter((pair) => !isNaN(pair.port)); // Filter out invalid pairs
-
-      return portFailChancePairs;
-    }
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
-      authDomain: "memoryorganauth.firebaseapp.com",
-      projectId: "memoryorganauth",
-      storageBucket: "memoryorganauth.appspot.com",
-      messagingSenderId: "333239312434",
-      appId: "1:333239312434:web:6c247813673d3a6a5a1c2b",
-      measurementId: "G-6BMLQF2S68"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    const submitBtn = document.getElementById('submitBtn');
-    const inputField = document.getElementById('inputField');
-    const outputField = document.getElementById('outputField');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-
-    var portObjArr = parsePortObjArr(localStorage.getItem("portObjArr") || "")
-
-
-    
-    submitBtn.addEventListener('click', async () => {
-      try {
-        const inputText = inputField.value;
-        inputField.value = '';
-
-        const user = auth.currentUser;
-        if (!user) {
-          throw new Error('No user is signed in');
-        }
-
-
-        const idToken = await user.getIdToken(true);
-
-        const reqObj =
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`
-          },
-          body: JSON.stringify({
-            username: localStorage.getItem('username'),
-            inputData: inputText
-          })
-        }
-
-        const responseText = await multiNodeReqs(portObjArr, reqObj);
-
-        
-        outputField.value = responseText
-
-      } catch (error) {
-        console.log("ERROR OVER HERE!")
-        console.error('Error:', error);
-        outputField.value = `Error: ${error.message}`;
-      }
+      document.getElementById('outputField').value = responseText;
     });
 
     inputField.addEventListener('keypress', (e) => {
@@ -271,22 +338,6 @@
       }
     });
 
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        console.log("LOGGING OUT")
-        await signOut(auth);
-        window.location.href = 'index.html';
-      } catch (error) {
-        console.error('Logout error:', error);
-        outputField.value = `Logout error: ${error.message}`;
-      }
-    });
-
-    auth.onAuthStateChanged((user) => {
-      if (!user) {
-        window.location.href = 'index.html';
-      }
-    });
   </script>
 </body>
 </html>

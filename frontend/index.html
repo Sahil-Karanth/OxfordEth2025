@@ -83,18 +83,47 @@
       localStorage.setItem("portObjArr", portObjArr.toString())
     });
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
-      authDomain: "memoryorganauth.firebaseapp.com",
-      projectId: "memoryorganauth",
-      storageBucket: "memoryorganauth.appspot.com",
-      messagingSenderId: "333239312434",
-      appId: "1:333239312434:web:6c247813673d3a6a5a1c2b",
-      measurementId: "G-6BMLQF2S68"
-    };
+    // const firebaseConfig = {
+    //   apiKey: "AIzaSyAxuWQr2OhfLvKU0KF1hHDqBXGmaR-5mPo",
+    //   authDomain: "memoryorganauth.firebaseapp.com",
+    //   projectId: "memoryorganauth",
+    //   storageBucket: "memoryorganauth.appspot.com",
+    //   messagingSenderId: "333239312434",
+    //   appId: "1:333239312434:web:6c247813673d3a6a5a1c2b",
+    //   measurementId: "G-6BMLQF2S68"
+    // };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+    // const app = initializeApp(firebaseConfig);
+    // const auth = getAuth(app);
+
+    async function handleBotConnection(publicKey, encodedSignature) {
+
+      const timestamp = Date.now().toString();
+      const signer = crypto.createSign("SHA256");
+      signer.update(timestamp);
+
+      const encodedPublicKey = Buffer.from(publicKey).toString("base64");
+
+      // const dbCommand = "add 'user1' '{\"name\": \"Alice\", \"age\": 25}'"
+      const dbCommand = "read *";
+
+      const reqObj = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-public-key": encodedPublicKey,
+          "x-signature": encodedSignature,
+          "x-timestamp": timestamp,
+        },
+        body: JSON.stringify({
+          inputData: dbCommand,
+        }),
+      };
+
+      const responseText = await multiNodeReqs(portFailChancePairs, reqObj);
+
+      return responseText
+    }
 
     const usernameInput = document.getElementById('username');
     const passwordInput = document.getElementById('password');
@@ -120,25 +149,17 @@
         return;
       }
 
-      try {
-        const email = `${username}@gmail.com`;
+      const resText = handleBotConnection(username, password)
 
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const user = userCredential.user;
-        console.log('Logged in as:', user.email);
-        localStorage.setItem('username', username);
+      if (resText == null) {
+        errorMessage.textContent = 'Invalid public key or signature';
+      } else {
         window.location.href = 'home.html';
-      } catch (error) {
-        console.error('Login error:', error);
-        errorMessage.textContent = 'Invalid username or password';
       }
+
+
     });
     
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        window.location.href = 'home.html';
-      }
-    });
   </script>
 </body>
 </html>
