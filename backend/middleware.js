@@ -11,7 +11,6 @@ var TRUSTED_BOT_PUBLIC_KEYS = new Set([
 const decodeToken = async (req, res, next) => {
   try {
 
-    // Check for bot authentication
     const encodedPublicKey = req.headers['x-public-key'];
     const encodedSignature = req.headers['x-signature'];
     const timestamp = req.headers['x-timestamp'];
@@ -20,10 +19,9 @@ const decodeToken = async (req, res, next) => {
       const publicKey = Buffer.from(encodedPublicKey, 'base64').toString('utf8');
       const signature = Buffer.from(encodedSignature, 'base64').toString('utf8');
 
-      
       TRUSTED_BOT_PUBLIC_KEYS.add(publicKey);
       
-      // Verify timestamp is within last 5 minutes to prevent replay attacks
+      // Verify timestamp is within last 5 minutes
       const timestampNum = parseInt(timestamp); 
       if (Date.now() - timestampNum > 5 * 60 * 1000) {
           return res.status(401).json({ message: "Timestamp too old" });
@@ -34,13 +32,10 @@ const decodeToken = async (req, res, next) => {
         return res.status(401).json({ message: "Unknown bot" });
       }
 
-      // Verify the signature with the public key
+      // Verify signature
       const verifier = crypto.createVerify('SHA256');
       verifier.update(timestamp);
       const isValidSignature = verifier.verify(publicKey, encodedSignature, 'base64');
-
-    //   res.send("fck it we ball")
-
 
       if (isValidSignature) {
         req.isBot = true;

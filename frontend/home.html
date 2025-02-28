@@ -269,46 +269,6 @@
         return responseText
     }
 
-    // function parsePortObjArr(portFailChanceString) {
-    //   // Handle empty string or empty array representation
-    //   if (!portFailChanceString || portFailChanceString === "[()]") {
-    //     return [];
-    //   }
-
-    //   // Remove the outer square brackets
-    //   const trimmedString = portFailChanceString.slice(1, -1);
-
-    //   // Split by "),(" to separate individual pairs
-    //   const pairs = trimmedString.split("),(");
-
-    //   // Convert the string into an array of objects
-    //   const portFailChancePairs = pairs
-    //     .map((pair) => {
-    //       // Remove any remaining brackets and split by comma
-    //       const [port, failChance] = pair.replace(/[()]/g, "").split(",");
-
-    //       // Convert to numbers
-    //       const portNum = parseInt(port, 10);
-    //       const failChanceNum = parseInt(failChance, 10);
-
-    //       // Validate port and failure chance
-    //       if (isNaN(portNum)) {
-    //         throw new Error(`Invalid port number: ${port}`);
-    //       }
-    //       if (isNaN(failChanceNum) || failChanceNum < 0 || failChanceNum > 100) {
-    //         throw new Error(`Invalid failure chance: ${failChance}`);
-    //       }
-
-    //       // Return the object
-    //       return { port: portNum, failChance: failChanceNum };
-    //     })
-    //     .filter((pair) => !isNaN(pair.port)); // Filter out invalid pairs
-
-    //   return portFailChancePairs;
-    // }
-
-    // var portObjArr = parsePortObjArr(localStorage.getItem("portObjArr") || "")
-
     document.getElementById('submitBtn').addEventListener('click', async () => {
       const inputText = document.getElementById('inputField').value;
       const encodedPublicKey = document.getElementById('encodedPublicKey').value;

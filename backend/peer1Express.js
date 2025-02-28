@@ -24,12 +24,6 @@ app.use(express.json())
 app.use(cors())
 app.use('/', decodeToken)
 
-
-app.get('/test', (req, res) => {
-    console.log("TEST REQ RECEIVED")
-    res.status(200).send('OK')
-})
-
 const nodeServer = createServer(app)
 
 const REDIS_PORT = 6379
@@ -57,16 +51,8 @@ app.post('/', async (req, res) => {
 
     try {
 
-        // res.status(200).send("got to post!")
-
-        console.log(req.body)
-
         var publicKey = req.headers['x-public-key']
         const commandString = req.body.inputData
-
-        // if (req.headers['x-public-key']) {
-        //     username = req.header['x-public-key']
-        // }
     
         if (!commandString) {
             return res.status(400).send('Request did not receive db command');

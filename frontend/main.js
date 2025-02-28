@@ -53,7 +53,6 @@ if (portFailChancePairs.length === 0) {
   throw new Error("No valid port-failure chance pairs provided.");
 }
 
-console.log("isBot:", isBot);
 portFailChancePairs.forEach((portObj) => {
   console.log(`port ${portObj.port} (${portObj.failChance}% programmed failure chance)`)
 });
@@ -88,7 +87,7 @@ function makeElectronApp(portsAndFailures) {
 
     const { encodedPublicKey, encodedSignature, timestamp } = genAuthPair();
   
-    console.log(`${encodedPublicKey}\n\n${encodedSignature}`)
+    console.log(`\nEXAMPLE ENCODED PUBLIC KEY\n${encodedPublicKey}\n\nEXAMPLE ENCODED SIGNATURE\n${encodedSignature}`)
 
     win = new BrowserWindow({
       width: 800,
@@ -100,10 +99,6 @@ function makeElectronApp(portsAndFailures) {
     });
 
     win.loadFile("home.html");
-
-    // const portsAndFailuresString = `[${portsAndFailures
-    //   .map(({ port, failChance }) => `(${port},${failChance})`)
-    //   .join(",")}]`;
 
     win.webContents.once("did-finish-load", () => {
       win.webContents.send("set-ports", portsAndFailures);
