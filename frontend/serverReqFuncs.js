@@ -1,28 +1,31 @@
 async function maybeSendNodeReq(portObj, reqObj) {
     try {
-        const response = await fetch(
-            `http://localhost:${portObj.port}`,
-            reqObj
-          );
 
-        const randomNumber = Math.floor(Math.random() * 100) + 1;
-        console.log(`current fail chance is ${port.failChance}`)
-        if (randomNumber < portObj.failChance) return null
-          
-        return response
+      const randomNumber = Math.floor(Math.random() * 100) + 1;
+
+      if (randomNumber < portObj.failChance) return null;
+        
+
+      const response = await fetch(
+          `http://localhost:${portObj.port}`,
+          reqObj
+        );
+
+      return response
     } catch (err) {
+        console.log(err)
         return null
     }
 }
   
 async function multiNodeReqs(portFailChancePairs, reqObj) {
 
-    
     let responseText = "COULDN'T CONNECT TO ANY PEERS";
-    
+
     var iterCount = 0;
     while (true) {
 
+        try {
         iterCount += 1
 
         const portObj = portFailChancePairs[0]
@@ -45,10 +48,14 @@ async function multiNodeReqs(portFailChancePairs, reqObj) {
             break
         }
 
+        } catch (err) {
+        console.log(err)
+        }
+
+
     }
     return responseText
 }
-
 module.exports = {
     multiNodeReqs
 }
