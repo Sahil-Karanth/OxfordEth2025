@@ -1,5 +1,5 @@
 # Project Introduction
-We have tackled the decentralised memory organ bounty for the Torus network at Eth Oxford 2025. Our p2p distributed database is fault tolerant without a single point of failure since client code can access any p2p node, moving failed nodes to the back of a queue and can easily be scaled horizontally by adding more peers on the network. Our system provides a decentralised peer-to-peer network, in memory caching, a custom query language with CRUD operations, a secure API to access the network, a tamper-proof design via encryption and an alternative access path for bots and humans.
+We have tackled the decentralised memory organ bounty for the Torus network at Eth Oxford 2025. Our p2p distributed database is fault tolerant without a single point of failure since client code can access any p2p node, moving failed nodes to the back of a queue and can easily be scaled horizontally by adding more peers on the network. Our system provides a decentralised peer-to-peer network, a custom query language with CRUD operations, a secure API to access the network, a tamper-proof design via encryption and an asymmetric encryption system to authenticate.
 
 ## Starting the Project
 To start the project, follow these steps:
@@ -339,49 +339,18 @@ const crypto = require('crypto');
 const { multiNodeReqs } = require('./serverReqFuncs');
 ```
 
-### Argument Parsing for Bot Mode
-The application expects two command-line arguments:
-1. A flag (`true/false`) to indicate bot mode.
-2. A comma-separated list of ports for node communication.
-
-```javascript
-const args = process.argv.slice(2);
-
-let isBot = false;
-let portArr = [];
-
-if (args.length < 2) {
-  throw new Error("Usage: npm start <true/false> <port1,port2,...>");
-}
-
-const arg = args[0]?.toLowerCase();
-
-if (arg === "true") {
-  isBot = true;
-} else if (arg === "false") {
-  isBot = false;
-} else {
-  throw new Error(`Incorrect argument. Expected 'true' or 'false', but got ${arg}`);
-}
-
-portArr = args[1]
-  .split(",")
-  .map(Number)
-  .filter((port) => !isNaN(port));
-
-if (portArr.length === 0) {
-  throw new Error("No valid ports provided.");
-}
-```
-
 ### Electron App for Human Users
-Creates an Electron window and sends the port list to the renderer process.
+Initializes an Electron window and sends the port-failure chance pairs and a timestamp to the renderer process.
 
 ```javascript
-function makeElectronApp(portArr) {
+function makeElectronApp(portsAndFailures) {
   let win;
 
   function createWindow() {
+    const { encodedPublicKey, encodedSignature, timestamp } = genAuthPair();
+  
+    console.log(`\nEXAMPLE ENCODED PUBLIC KEY\n${encodedPublicKey}\n\nEXAMPLE ENCODED SIGNATURE\n${encodedSignature}`);
+
     win = new BrowserWindow({
       width: 800,
       height: 600,
@@ -391,10 +360,11 @@ function makeElectronApp(portArr) {
       },
     });
 
-    win.loadFile("index.html");
+    win.loadFile("home.html");
 
     win.webContents.once("did-finish-load", () => {
-      win.webContents.send("set-port-array", portArr);
+      win.webContents.send("set-ports", portsAndFailures);
+      win.webContents.send("time-stamp", timestamp);
     });
   }
 
@@ -414,11 +384,89 @@ function makeElectronApp(portArr) {
 }
 ```
 
-### Bot Authentication with Digital Signatures
-Bots use asymmetric cryptography for authentication and communicate with multiple nodes.
+### Bot Authentication Also with Digital Signatures
+Bots authenticate using asymmetric cryptography and send requests to multiple nodes.
 
 ```javascript
 async function handleBotConnection() {
+  const { encodedPublicKey, encodedSignature, timestamp } = genAuthPair();
+
+  console.log(encodedPublicKey);
+  console.log(encodedSignature);
+
+  const dbCommand = "read *";
+
+  const reqObj = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-public-key": encodedPublicKey,
+      "x-signature": encodedSignature,
+      "x-timestamp": timestamp,
+    },
+    body: JSON.stringify({ inputData: dbCommand }),
+  };
+
+  const responseText = await multiNodeReqs(portFailChancePairs, reqObj);
+  console.log(responseText);
+}
+```
+
+### Argument Parsing and Validation
+Parses command-line arguments to determine if the app runs as a bot or a human interface.
+
+```javascript
+const args = process.argv.slice(2);
+let isBot = false;
+let portFailChancePairs = [];
+
+if (args.length < 2) {
+  throw new Error("Usage: npm start <isBot> <[(port1,failChance1),(port2,failChance2),...]>");
+}
+
+const arg = args[0]?.toLowerCase();
+if (arg === "true") {
+  isBot = true;
+} else if (arg === "false") {
+  isBot = false;
+} else {
+  throw new Error(`Incorrect argument. Expected 'true' or 'false', but got ${arg}`);
+}
+
+const pairsInput = args[1];
+if (!/^\[(\(\d+,\d+\))(,\(\d+,\d+\))*\]$/.test(pairsInput)) {
+  throw new Error(`Invalid input format. Expected [(port1,failChance1),(port2,failChance2),...], but got ${pairsInput}`);
+}
+
+portFailChancePairs = pairsInput.slice(1, -1).split(/\),\(/).map((pair) => {
+  const [port, failChance] = pair.replace(/[()]/g, "").split(",");
+  const portNum = parseInt(port, 10);
+  const failChanceNum = parseInt(failChance, 10);
+
+  if (isNaN(portNum) || portNum < 0 || portNum > 65535) {
+    throw new Error(`Invalid port number: ${port}`);
+  }
+  if (isNaN(failChanceNum) || failChanceNum < 0 || failChanceNum > 100) {
+    throw new Error(`Invalid failure chance: ${failChance}`);
+  }
+
+  return { port: portNum, failChance: failChanceNum };
+});
+
+if (portFailChancePairs.length === 0) {
+  throw new Error("No valid port-failure chance pairs provided.");
+}
+
+portFailChancePairs.forEach((portObj) => {
+  console.log(`port ${portObj.port} (${portObj.failChance}% programmed failure chance)`);
+});
+```
+
+### Key Generation for Authentication
+Generates RSA key pairs and creates a timestamped digital signature.
+
+```javascript
+function genAuthPair() {
   const { privateKey, publicKey } = crypto.generateKeyPairSync("rsa", {
     modulusLength: 512,
     publicKeyEncoding: {
@@ -438,23 +486,21 @@ async function handleBotConnection() {
   const encodedSignature = signer.sign(privateKey, "base64");
   const encodedPublicKey = Buffer.from(publicKey).toString("base64");
 
-  const dbCommand = "read *";
-
-  const reqObj = {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-public-key": encodedPublicKey,
-      "x-signature": encodedSignature,
-      "x-timestamp": timestamp,
-    },
-    body: JSON.stringify({ inputData: dbCommand }),
-  };
-
-  const responseText = await multiNodeReqs(portArr, reqObj);
-  console.log(responseText);
+  return { encodedPublicKey, encodedSignature, timestamp };
 }
 ```
+
+### Execution Logic
+Determines whether to start the Electron app or run the bot authentication process based on the provided arguments.
+
+```javascript
+if (!isBot) {
+  makeElectronApp(portFailChancePairs);
+} else {
+  handleBotConnection();
+}
+```
+
 
 ### Fault-Tolerant Node Requests
 If a request to a node fails, the function will retry with the next available node in a round-robin fashion.
@@ -511,8 +557,7 @@ if (!isBot) {
 ```
 
 ## Summary
-- **Human users** authenticate via Firebase Authentication tokens.
-- **AI bots** authenticate using digital signatures verified against trusted public keys.
+- **Auth** authenticate using digital signatures verified against trusted public keys.
 - **Fault tolerance**: If a node fails, the request is retried with the next available node in a round-robin manner.
 - **The frontend dynamically determines** whether the process is a bot or a human user.
 - **Secure cryptographic signatures** prevent unauthorized bot access.
