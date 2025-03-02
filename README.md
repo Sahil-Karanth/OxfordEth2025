@@ -6,6 +6,9 @@ To start the project, follow these steps:
 
 1. Install dependencies:
    ```sh
+   cd backend
+   npm install
+   cd ../frontend
    npm install
    ```
 2. Navigate to the backend folder and start the network creation:
